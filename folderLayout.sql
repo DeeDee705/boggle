@@ -1,0 +1,31 @@
+index.html
+assets/
+  buttons/
+    leftButton.png
+    leftButton@2x.png
+    leftButton@3x.png
+    leftButtonPress.png
+    leftButtonPress@2x.png
+    leftButtonPress@3x.png
+    rightButton.png
+    rightButton@2x.png
+    rightButton@3x.png
+    rightButtonPress.png
+    rightButtonPress@2x.png
+    rightButtonPress@3x.png
+  frame/
+    frame@1x.png
+    frame@2x.png
+    frame@3x.png
+  tiles/
+    tile_base@1x.png      ← (rename your current tile_base1.png to this)
+    tile_base@2x.png
+    tile_base@3x.png
+    tile_overlay@1x.png   ← optional; transparent center with filigree corners
+    tile_overlay@2x.png
+    tile_overlay@3x.png
+  timer/
+    face@1x.png
+    face@2x.png
+    face@3x.png
+  ui_coords_full_with_timer_counter.json
