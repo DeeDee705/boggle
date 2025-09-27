@@ -1,0 +1,425 @@
+{
+  "lights": [
+    {
+      "id": "light_on",
+      "transform": ""
+    },
+    {
+      "id": "light_on-2",
+      "transform": ""
+    },
+    {
+      "id": "light_off",
+      "transform": ""
+    },
+    {
+      "id": "light_off-2",
+      "transform": ""
+    },
+    {
+      "id": "light_dim",
+      "transform": ""
+    },
+    {
+      "id": "light_dim-2",
+      "transform": ""
+    },
+    {
+      "id": "light_on-3",
+      "transform": ""
+    },
+    {
+      "id": "light_on-4",
+      "transform": ""
+    },
+    {
+      "id": "light_on-5",
+      "transform": ""
+    },
+    {
+      "id": "light_on-6",
+      "transform": ""
+    },
+    {
+      "id": "light_on-7",
+      "transform": ""
+    },
+    {
+      "id": "light_on-8",
+      "transform": ""
+    },
+    {
+      "id": "light_on-9",
+      "transform": ""
+    },
+    {
+      "id": "light_on-10",
+      "transform": ""
+    },
+    {
+      "id": "light_on-11",
+      "transform": ""
+    },
+    {
+      "id": "light_on-12",
+      "transform": ""
+    },
+    {
+      "id": "light_on-13",
+      "transform": ""
+    },
+    {
+      "id": "light_on-14",
+      "transform": ""
+    },
+    {
+      "id": "light_on-15",
+      "transform": ""
+    },
+    {
+      "id": "light_on-16",
+      "transform": ""
+    },
+    {
+      "id": "light_on-17",
+      "transform": ""
+    },
+    {
+      "id": "light_on-18",
+      "transform": ""
+    },
+    {
+      "id": "light_on-19",
+      "transform": ""
+    },
+    {
+      "id": "light_on-20",
+      "transform": ""
+    },
+    {
+      "id": "light_on-21",
+      "transform": ""
+    },
+    {
+      "id": "light_on-22",
+      "transform": ""
+    },
+    {
+      "id": "light_on-23",
+      "transform": ""
+    },
+    {
+      "id": "light_on-24",
+      "transform": ""
+    },
+    {
+      "id": "light_on-25",
+      "transform": ""
+    },
+    {
+      "id": "light_on-26",
+      "transform": ""
+    },
+    {
+      "id": "light_on-27",
+      "transform": ""
+    },
+    {
+      "id": "light_on-28",
+      "transform": ""
+    },
+    {
+      "id": "light_on-29",
+      "transform": ""
+    },
+    {
+      "id": "light_on-30",
+      "transform": ""
+    },
+    {
+      "id": "light_on-31",
+      "transform": ""
+    },
+    {
+      "id": "light_on-32",
+      "transform": ""
+    },
+    {
+      "id": "light_on-33",
+      "transform": ""
+    },
+    {
+      "id": "light_on-34",
+      "transform": ""
+    },
+    {
+      "id": "light_on-35",
+      "transform": ""
+    },
+    {
+      "id": "light_on-36",
+      "transform": ""
+    },
+    {
+      "id": "light_on-37",
+      "transform": ""
+    },
+    {
+      "id": "light_on-38",
+      "transform": ""
+    },
+    {
+      "id": "light_on-39",
+      "transform": ""
+    },
+    {
+      "id": "light_on-40",
+      "transform": ""
+    },
+    {
+      "id": "light_on-41",
+      "transform": ""
+    },
+    {
+      "id": "light_on-42",
+      "transform": ""
+    },
+    {
+      "id": "light_on-43",
+      "transform": ""
+    },
+    {
+      "id": "light_on-44",
+      "transform": ""
+    },
+    {
+      "id": "light_on-45",
+      "transform": ""
+    },
+    {
+      "id": "light_on-46",
+      "transform": ""
+    },
+    {
+      "id": "light_on-47",
+      "transform": ""
+    },
+    {
+      "id": "light_on-48",
+      "transform": ""
+    },
+    {
+      "id": "light_on-49",
+      "transform": ""
+    },
+    {
+      "id": "light_on-50",
+      "transform": ""
+    },
+    {
+      "id": "light_on-51",
+      "transform": ""
+    },
+    {
+      "id": "light_on-52",
+      "transform": ""
+    },
+    {
+      "id": "light_on-53",
+      "transform": ""
+    },
+    {
+      "id": "light_on-54",
+      "transform": ""
+    },
+    {
+      "id": "light_on-55",
+      "transform": ""
+    },
+    {
+      "id": "light_on-56",
+      "transform": ""
+    },
+    {
+      "id": "light_on-57",
+      "transform": ""
+    },
+    {
+      "id": "light_on-58",
+      "transform": ""
+    },
+    {
+      "id": "light_on-59",
+      "transform": ""
+    },
+    {
+      "id": "light_on-60",
+      "transform": ""
+    },
+    {
+      "id": "light_on-61",
+      "transform": ""
+    },
+    {
+      "id": "light_on-62",
+      "transform": ""
+    },
+    {
+      "id": "light_on-63",
+      "transform": ""
+    },
+    {
+      "id": "light_on-64",
+      "transform": ""
+    },
+    {
+      "id": "light_on-65",
+      "transform": ""
+    },
+    {
+      "id": "light_on-66",
+      "transform": ""
+    },
+    {
+      "id": "light_on-67",
+      "transform": ""
+    },
+    {
+      "id": "light_on-68",
+      "transform": ""
+    },
+    {
+      "id": "light_on-69",
+      "transform": ""
+    },
+    {
+      "id": "light_on-70",
+      "transform": ""
+    },
+    {
+      "id": "light_on-71",
+      "transform": ""
+    },
+    {
+      "id": "light_on-72",
+      "transform": ""
+    },
+    {
+      "id": "light_on-73",
+      "transform": ""
+    },
+    {
+      "id": "light_on-74",
+      "transform": ""
+    },
+    {
+      "id": "light_off-3",
+      "transform": ""
+    },
+    {
+      "id": "light_off-4",
+      "transform": ""
+    },
+    {
+      "id": "light_dim-3",
+      "transform": ""
+    },
+    {
+      "id": "light_dim-4",
+      "transform": ""
+    },
+    {
+      "id": "light_on-75",
+      "transform": ""
+    },
+    {
+      "id": "light_on-76",
+      "transform": ""
+    },
+    {
+      "id": "light_on-77",
+      "transform": ""
+    },
+    {
+      "id": "light_on-78",
+      "transform": ""
+    },
+    {
+      "id": "light_on-79",
+      "transform": ""
+    },
+    {
+      "id": "light_on-80",
+      "transform": ""
+    },
+    {
+      "id": "light_on-81",
+      "transform": ""
+    },
+    {
+      "id": "light_on-82",
+      "transform": ""
+    },
+    {
+      "id": "light_on-83",
+      "transform": ""
+    },
+    {
+      "id": "light_on-84",
+      "transform": ""
+    },
+    {
+      "id": "light_on-85",
+      "transform": ""
+    },
+    {
+      "id": "light_on-86",
+      "transform": ""
+    },
+    {
+      "id": "light_on-87",
+      "transform": ""
+    },
+    {
+      "id": "light_on-88",
+      "transform": ""
+    },
+    {
+      "id": "light_on-89",
+      "transform": ""
+    },
+    {
+      "id": "light_on-90",
+      "transform": ""
+    },
+    {
+      "id": "light_on-91",
+      "transform": ""
+    },
+    {
+      "id": "light_on-92",
+      "transform": ""
+    },
+    {
+      "id": "light_on-93",
+      "transform": ""
+    },
+    {
+      "id": "light_on-94",
+      "transform": ""
+    },
+    {
+      "id": "topLight_right",
+      "transform": ""
+    },
+    {
+      "id": "topLight_left",
+      "transform": ""
+    }
+  ],
+  "buttons": {},
+  "timer": null,
+  "counter": {
+    "transform": ""
+  }
+}
