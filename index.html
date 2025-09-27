@@ -1,14 +1,43 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Steampunk Boggle – MVP</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="UTF-8">
+  <title>Boggle Machine</title>
+
+  <!-- CSS styles go in the head -->
   <style>
-    html,body{margin:0;height:100%;background:#0f1115}
-    #app{width:100vw;height:100vh;display:flex;align-items:center;justify-content:center}
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #0f1115; /* dark backdrop */
+    }
+    #app {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block; /* avoids extra gaps */
+    }
   </style>
 </head>
+
+<body>
+  <!-- PIXI canvas mounts here -->
+  <div id="app"></div>
+
+  <!-- Load PIXI -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+
+  <!-- Your game code -->
+  <script>
+    // ... JS code including the layout() logic I sent you earlier ...
+  </script>
+</body>
+</html>
+
 <body>
 <div id="app"></div>
 
@@ -188,4 +217,5 @@
 </script>
 </body>
 </html>
+
 
