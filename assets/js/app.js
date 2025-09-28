@@ -252,7 +252,7 @@ function clearSelection(){
 }
 
   // ---------- SELECTION (simple toggle for now) ----------
-  const selected=[];
+  // -------------const selected=[];---------- delete this one
   tiles.forEach((t,i)=>{
     t.cont.on("pointerdown", ()=>{
       const k = selected.indexOf(i);
