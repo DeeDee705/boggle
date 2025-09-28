@@ -1,6 +1,6 @@
 // assets/app.js  (top of file)
-import { Trie } from '../core/trie.js';
-import { isValidPath, pathToWord, scoreWord } from '../core/gameCore.js';
+import { Trie } from '../../core/trie.js?v=17';
+import { isValidPath, pathToWord, scoreWord } from '../../core/gameCore.js?v=17';
 // (optional for cache busting)
 // import { Trie } from '../core/trie.js?v=16';
 // import { isValidPath, pathToWord, scoreWord } from '../core/gameCore.js?v=16';
