@@ -1,6 +1,10 @@
-// app.js (ensure your index.html uses <script type="module" src="app.js">)
-import { Trie } from './core/trie.js';
-import { isValidPath, pathToWord, scoreWord } from './core/gameCore.js';
+// assets/app.js  (top of file)
+import { Trie } from '../core/trie.js';
+import { isValidPath, pathToWord, scoreWord } from '../core/gameCore.js';
+// (optional for cache busting)
+// import { Trie } from '../core/trie.js?v=16';
+// import { isValidPath, pathToWord, scoreWord } from '../core/gameCore.js?v=16';
+
 
 // boot
 const trie = new Trie();
