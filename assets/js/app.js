@@ -6,7 +6,7 @@ const GRID = {
   rows: 5, cols: 5,
   size: 38, gutter: 7,
   topLeftCenter: { x: 67.000, y: 122.000 }, // your latest
-  scale: 0.92,        // shrink whole raster slightly (tweak here)
+  scale: 0.96,        // shrink whole raster slightly (tweak here)
   overlayScale: 0.95  // overlay slightly smaller than tile base
 };
 
