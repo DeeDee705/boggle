@@ -12,7 +12,7 @@ const GRID = {
 
 const TIMER_R   = 26;
 const COUNTER_R = 18;
-const BTN_SIZE  = { w: 60, h: 24 };
+const BTN_SIZE  = { w: 48, h: 18 };
 
 // ------------------ PIXI APP ------------------
 const app = new PIXI.Application({
@@ -245,20 +245,31 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     faceContainer.addChild(g);
   }
 
-  // ---------- LIGHTS ----------
-  const bulbs=[];
-  (coords.lights||[]).forEach(L=>{
-    const dot = new PIXI.Graphics();
-    dot.beginFill(0xfff080);
-    dot.drawCircle(0,0,3.6);
-    dot.endFill();
-    const spr = new PIXI.Sprite(app.renderer.generateTexture(dot));
-    spr.anchor.set(0.5);
-    spr.position.set(L.x, L.y);
-    spr.alpha = 0.7;
-    const blur = new PIXI.filters.BlurFilter(); blur.blur = 1.4; spr.filters = [blur];
-    fxLayer.addChild(spr); bulbs.push(spr);
-  });
+ // ---------- LIGHTS ----------
+const bulbs = [];
+(coords.lights || []).forEach((L, i) => {
+  const LIGHT_R = 2.4;        // was ~3.6
+  const LIGHT_ALPHA = 0.55;   // was 0.7
+  const BLUR = 0.9;           // was 1.4
+
+  const dot = new PIXI.Graphics();
+  dot.beginFill(0xfff080);
+  dot.drawCircle(0, 0, LIGHT_R);
+  dot.endFill();
+
+  const spr = new PIXI.Sprite(app.renderer.generateTexture(dot));
+  spr.anchor.set(0.5);
+  spr.position.set(L.x, L.y);
+  spr.alpha = LIGHT_ALPHA;
+
+  const blur = new PIXI.filters.BlurFilter();
+  blur.blur = BLUR;
+  spr.filters = [blur];
+
+  spr.__lightIndex = i;       // keep for dev mode
+  fxLayer.addChild(spr);
+  bulbs.push(spr);
+});
 
   // ---------- ROUND TIMER LOOP ----------
   const ROUND_S=180, WARN_S=10;
