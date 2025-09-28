@@ -363,7 +363,7 @@ const bulbs = [];
   spr.position.set(L.x, L.y);
   spr.alpha = LIGHT_ALPHA;
 
-  const blur = new PIXI.filters.BlurFilter();
+  const blur = new PIXI.BlurFilter();
   blur.blur = BLUR;
   spr.filters = [blur];
 
