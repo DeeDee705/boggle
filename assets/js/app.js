@@ -6,7 +6,7 @@ const GRID = {
   rows: 5, cols: 5,
   size: 38, gutter: 7,
   // raise grid higher (was 254.0)
-  topLeftCenter: { x: 72.366, y: 50,0 }
+  topLeftCenter: { x: 72.366, y: 25.0 }
 };
 
 const TIMER_R   = 26;
