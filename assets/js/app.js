@@ -243,14 +243,13 @@ tiles.forEach((t,i)=>{
 });
 
 function clearSelection(){
-  selected.splice(0);
-  tiles.forEach((t, idx)=>{
+  selected.length = 0;
+  tiles.forEach((t, idx) => {
     t.cont.alpha = 1;
     if (t.overlay) t.overlay.tint = 0xFFFFFF;
-    letters[idx].tint = LETTER_TINT_DEFAULT; // reset to default
+    letters[idx].tint = 0xFFFFFF;  // reset yellow back to normal
   });
 }
-
   // ---------- SELECTION (simple toggle for now) ----------
   // -------------const selected=[];---------- delete this one
   tiles.forEach((t,i)=>{
