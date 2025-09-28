@@ -269,12 +269,16 @@ function makeCodeButton(which, onClick) {
   s.cursor = "pointer";
   s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
 
-  // shadow filter (cast upward)
-  const shadow = new PIXI.filters.DropShadowFilter({
-    alpha: 0.4, blur: 3, distance: 2,
-    rotation: 270, color: 0x000000
-  });
-  s.filters = [shadow];
+ // simple shadow (no pixi-filters needed)
+const shadow = new PIXI.Graphics();
+shadow.beginFill(0x000000, 0.28);
+shadow.drawRoundedRect(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h, 6);
+shadow.endFill();
+shadow.position.set(center.x, center.y + 2); // small downward offset
+uiLayer.addChild(shadow);
+
+// add button sprite on top
+uiLayer.addChild(s);
 
   // press feedback: nudge down, darken a bit
   s.on("pointerdown", ()=> { s.y += 2; s.scale.set(0.98); });
