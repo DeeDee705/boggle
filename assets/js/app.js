@@ -181,8 +181,8 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
 
   // --- DICTIONARY (EN) ---------------------------------------------------
   try {
-    const res = await fetch('assets/words/en.txt', { cache: 'no-store' });
-    if (!res.ok) throw new Error(res.statusText);
+    const res = await fetch('assets/words/nl.txt', { cache: 'no-store' }); // change dictionary here
+    if (!res.ok) throw new Error(res.statusText); 
     const txt = await res.text();
     const words = txt.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(Boolean);
     words.forEach(w => trie.insert(w));
