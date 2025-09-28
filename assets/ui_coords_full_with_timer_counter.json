@@ -417,7 +417,18 @@
       "transform": ""
     }
   ],
-  "buttons": {},
+  {
+  "buttons": [
+    { "id": "btn_green", "x": 132, "y": 430 },
+    { "id": "btn_red",   "x": 188, "y": 430 }
+  ],
+  "counter": { "x": 140.4563, "y": 32.6174 },
+  "timer":   { "face": { "id": "timer_face", "x": 139.7366, "y": 392.0765 } },
+  "lights": [
+    { "x": 100, "y": 80 }, { "x": 120, "y": 80 }  // …etc
+  ]
+}
+
   "timer": null,
   "counter": {
     "transform": ""
