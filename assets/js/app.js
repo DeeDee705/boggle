@@ -192,6 +192,33 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
       letters[i].alpha=1; tiles[i].cont.alpha=1; if (tiles[i].overlay) tiles[i].overlay.tint=0xFFFFFF;
     }
   }
+  // --- DEBUG: grid override via ?grid=25letters --------------------------------
+const params = new URLSearchParams(location.search);
+const gridParam = params.get('grid');
+
+function applyGridString(s){
+  const arr = s.replace(/[^A-Za-z]/g, '').toUpperCase().split('');
+  const N = GRID.rows * GRID.cols;
+  if (arr.length !== N) { console.warn('[grid] expected', N, 'letters'); return false; }
+  for (let r = 0; r < GRID.rows; r++){
+    for (let c = 0; c < GRID.cols; c++){
+      const i = r * GRID.cols + c;
+      const ch = arr[i];
+      charGrid[r][c] = ch;
+      letters[i].text = ch;
+      letters[i].alpha = 1;
+      tiles[i].cont.alpha = 1;
+      if (tiles[i].overlay) tiles[i].overlay.tint = 0xFFFFFF;
+    }
+  }
+  return true;
+}
+
+// Use override if present, else random roll
+if (!(gridParam && applyGridString(gridParam))) {
+  rollLetters();
+}
+
   rollLetters();
 
   // simple select toggle (MVP)
