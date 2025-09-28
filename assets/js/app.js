@@ -65,9 +65,11 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
   function makeTile(x,y,size){
     const cont = new PIXI.Container(); cont.position.set(x,y); cont.eventMode = "static";
     // base (coded)
-    const baseG = new PIXI.Graphics()
-      .roundRect(-size/2,-size/2,size,size,5).fill(0xf8fbff)
-      .rect(-size/2,-size/2,size,size).stroke({ width:1, color:0xcad3df, alpha:0.9 });
+    const baseG = new PIXI.Graphics();
+baseG.lineStyle(1, 0xcad3df, 0.9);
+baseG.beginFill(0xf8fbff);
+baseG.drawRoundedRect(-size/2, -size/2, size, size, 5);
+baseG.endFill();
     cont.addChild(baseG);
     // letter
     const letter = new PIXI.Text("", new PIXI.TextStyle({
