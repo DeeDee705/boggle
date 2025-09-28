@@ -192,6 +192,25 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
       letters[i].alpha=1; tiles[i].cont.alpha=1; if (tiles[i].overlay) tiles[i].overlay.tint=0xFFFFFF;
     }
   }
+    // ...your rollLetters() function ends here
+
+  // --- DICTIONARY (EN) ---------------------------------------------------
+  try {
+    const res = await fetch('assets/words/en.txt', { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.statusText);
+    const txt = await res.text();
+    const words = txt.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(Boolean);
+    words.forEach(w => trie.insert(w));   // uses the Trie you created at top
+    console.log(`[dict] EN loaded: ${words.length} words`);
+  } catch (e) {
+    console.warn('[dict] load failed, using tiny fallback', e);
+    ['tree','clear','enter','water','huis','boom'].forEach(w => trie.insert(w));
+  }
+
+  // --- DEBUG: grid override via ?grid=25letters ---------------------------
+  const params = new URLSearchParams(location.search);
+  // ...
+
   // --- DEBUG: grid override via ?grid=25letters --------------------------------
 const params = new URLSearchParams(location.search);
 const gridParam = params.get('grid');
