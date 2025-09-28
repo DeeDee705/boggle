@@ -219,8 +219,8 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     rollLetters();
   }
 // ---------- SELECTION (simple toggle for now) ----------
-const LETTER_TINT_SELECTED = 0xFFD200; // yellow
-const LETTER_TINT_DEFAULT  = 0xFFFFFF; // reset
+const LETTER_FILL_SELECTED = 0xFFD200; // yellow
+const LETTER_FILL_DEFAULT  = 0x23303a; // original dark text
 
 const selected = [];
 tiles.forEach((t,i)=>{
@@ -231,9 +231,32 @@ tiles.forEach((t,i)=>{
       selected.splice(k,1);
       t.cont.alpha = 1;
       if (t.overlay) t.overlay.tint = 0xFFFFFF;
-      letters[i].tint = LETTER_TINT_DEFAULT;
+      letters[i].tint = 0xFFFFFF;
+      letters[i].style.fill = LETTER_FILL_DEFAULT;
+      letters[i].updateText();
     } else {
       // select
+      selected.push(i);
+      t.cont.alpha = 0.95;
+      if (t.overlay) t.overlay.tint = 0xE9FFD6;
+      letters[i].tint = 0xFFFFFF;
+      letters[i].style.fill = LETTER_FILL_SELECTED; // yellow
+      letters[i].updateText();
+    }
+  });
+});
+
+function clearSelection(){
+  selected.length = 0;
+  tiles.forEach((t, idx)=>{
+    t.cont.alpha = 1;
+    if (t.overlay) t.overlay.tint = 0xFFFFFF;
+    letters[idx].tint = 0xFFFFFF;
+    letters[idx].style.fill = LETTER_FILL_DEFAULT;
+    letters[idx].updateText();
+  });
+}
+
       selected.push(i);
       t.cont.alpha = 0.95;
       if (t.overlay) t.overlay.tint = 0xE9FFD6;
