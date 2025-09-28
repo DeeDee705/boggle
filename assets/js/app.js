@@ -284,3 +284,234 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     if (e.key===" "){ e.preventDefault(); running = !running; }
   });
 })();
+/* ======================= DEV PLACEMENT MODE ======================= */
+/* Paste this below the closing "})();" of your init IIFE.            */
+/* Hotkeys:                                                           */
+/*   D           => toggle dev mode                                   */
+/*   [ / ]       => previous / next target                            */
+/*   Arrows      => move ±1px  (Shift+Arrows => ±5px)                 */
+/*   S           => save & download updated JSON                      */
+
+(function devPlacementMode(){
+  // Wait until PIXI is ready and our globals from init exist
+  if (!app || !root) return;
+
+  let devOn = false;
+  let targets = [];
+  let idx = 0;
+
+  // Helpers to find objects we created in init()
+  function getButtonCenter(id){
+    const b = (coords.buttons||[]).find(x => x.id === id);
+    return b ? {x:b.x, y:b.y, ref:b} : null;
+  }
+
+  // Build the selectable target list
+  function rebuildTargets(){
+    targets = [];
+
+    // 1) GRID (top-left tile center)
+    targets.push({
+      id: "GRID",
+      get: () => ({ x: GRID.topLeftCenter.x, y: GRID.topLeftCenter.y }),
+      set: (p) => {
+        GRID.topLeftCenter.x = p.x;
+        GRID.topLeftCenter.y = p.y;
+        // our code uses gridRoot positioned at the top-left tile center
+        const gr = gridLayer.children.find(c => c.__isGridRoot);
+        if (gr) gr.position.set(GRID.topLeftCenter.x, GRID.topLeftCenter.y);
+      },
+      draw: (g) => {
+        const W = GRID.cols*GRID.size + (GRID.cols-1)*GRID.gutter;
+        const H = GRID.rows*GRID.size + (GRID.rows-1)*GRID.gutter;
+        const x = GRID.topLeftCenter.x - GRID.size/2;
+        const y = GRID.topLeftCenter.y - GRID.size/2;
+        g.lineStyle(1, 0x00ffff, 0.9).drawRect(x, y, W*(GRID.scale||1), H*(GRID.scale||1));
+      }
+    });
+
+    // 2) TIMER (stored as top-left in JSON; we show/adjust by CENTER)
+    const t = coords.timer && coords.timer.face ? coords.timer.face : null;
+    if (t){
+      targets.push({
+        id: "TIMER",
+        get: () => ({ x: t.x + TIMER_R, y: t.y + TIMER_R }),
+        set: (p) => {
+          t.x = p.x - TIMER_R; t.y = p.y - TIMER_R;
+          const cont = uiLayer.children.find(c => c.__isTimerFace);
+          if (cont) cont.position.set(p.x, p.y);
+        },
+        draw: (g) => {
+          const cx = t.x + TIMER_R, cy = t.y + TIMER_R;
+          g.lineStyle(1, 0xffcc00, 0.9).drawCircle(cx, cy, TIMER_R+2);
+        }
+      });
+    }
+
+    // 3) COUNTER (stored top-left; adjust via CENTER)
+    const c = coords.counter || null;
+    if (c){
+      targets.push({
+        id: "COUNTER",
+        get: () => ({ x: c.x + COUNTER_R, y: c.y + COUNTER_R }),
+        set: (p) => {
+          c.x = p.x - COUNTER_R; c.y = p.y - COUNTER_R;
+          const bg = uiLayer.children.find(s => s.__isCounterBg);
+          const txt = uiLayer.children.find(s => s.__isCounterTxt);
+          if (bg){ bg.position.set(p.x, p.y); }
+          if (txt){ txt.position.set(p.x, p.y); }
+        },
+        draw: (g) => {
+          const cx = c.x + COUNTER_R, cy = c.y + COUNTER_R;
+          g.lineStyle(1, 0x66ff66, 0.9).drawCircle(cx, cy, COUNTER_R+2);
+        }
+      });
+    }
+
+    // 4) BUTTONS (centers)
+    const bg = getButtonCenter("btn_green");
+    const br = getButtonCenter("btn_red");
+    if (bg){
+      targets.push({
+        id: "BTN_GREEN",
+        get: () => ({ x: bg.ref.x, y: bg.ref.y }),
+        set: (p) => {
+          bg.ref.x = p.x; bg.ref.y = p.y;
+          const spr = uiLayer.children.find(s => s.__btnId === "btn_green");
+          if (spr) spr.position.set(p.x, p.y);
+        },
+        draw: (g) => g.lineStyle(1, 0x66ffcc, 0.9).drawRect(bg.ref.x-30, bg.ref.y-12, 60, 24)
+      });
+    }
+    if (br){
+      targets.push({
+        id: "BTN_RED",
+        get: () => ({ x: br.ref.x, y: br.ref.y }),
+        set: (p) => {
+          br.ref.x = p.x; br.ref.y = p.y;
+          const spr = uiLayer.children.find(s => s.__btnId === "btn_red");
+          if (spr) spr.position.set(p.x, p.y);
+        },
+        draw: (g) => g.lineStyle(1, 0xff6666, 0.9).drawRect(br.ref.x-30, br.ref.y-12, 60, 24)
+      });
+    }
+
+    // 5) LIGHTS (individual bulbs)
+    (coords.lights || []).forEach((L, i) => {
+      targets.push({
+        id: `LIGHT_${String(i+1).padStart(3,"0")}`,
+        get: () => ({ x: L.x, y: L.y }),
+        set: (p) => {
+          L.x = p.x; L.y = p.y;
+          const b = fxLayer.children.find(s => s.__lightIndex === i);
+          if (b) b.position.set(p.x, p.y);
+        },
+        draw: (g) => g.lineStyle(1, 0xfff080, 0.9).drawCircle(L.x, L.y, 5)
+      });
+    });
+  }
+
+  // Visual overlay
+  const overlay = new PIXI.Graphics();
+  overlay.zIndex = 9999;
+  root.addChild(overlay);
+  root.sortableChildren = true;
+
+  function drawOverlay(){
+    overlay.clear();
+    if (!devOn || targets.length === 0) return;
+    const t = targets[idx];
+    t.draw(overlay);
+
+    // crosshair
+    const p = t.get();
+    overlay.lineStyle(1, 0xffffff, 0.7);
+    overlay.moveTo(p.x - 6, p.y); overlay.lineTo(p.x + 6, p.y);
+    overlay.moveTo(p.x, p.y - 6); overlay.lineTo(p.x, p.y + 6);
+
+    // label
+    const label = new PIXI.Text(`${t.id}  (${Math.round(p.x)}, ${Math.round(p.y)})`, {
+      fontFamily: "monospace", fontSize: 10, fill: 0xffffff
+    });
+    label.position.set(p.x + 8, p.y + 8);
+    overlay.addChild(label);
+  }
+
+  function selectNext(d){
+    if (targets.length === 0) return;
+    idx = (idx + d + targets.length) % targets.length;
+    drawOverlay();
+  }
+
+  function nudge(dx, dy, mult){
+    if (!devOn || targets.length === 0) return;
+    const t = targets[idx];
+    const p = t.get();
+    p.x += dx * mult;
+    p.y += dy * mult;
+    t.set(p);
+    drawOverlay();
+  }
+
+  function saveJSON(){
+    // Rebuild buttons array from coords (already updated)
+    const blob = new Blob([JSON.stringify(coords, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "ui_coords_full_with_timer_counter.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // Hook up nodes we want to move live (timer face, counter pieces, buttons, bulbs)
+  // Mark some sprites so setters can find them quickly
+  // (We created them in init(); mark them now, safely if they exist.)
+  const faceCont = uiLayer.children.find(c => c instanceof PIXI.Container && c.children.length);
+  if (faceCont) faceCont.__isTimerFace = true;
+
+  const counterBg = uiLayer.children.find(g => g instanceof PIXI.Graphics && !g.__isMarkedCounter);
+  if (counterBg){ counterBg.__isMarkedCounter = true; counterBg.__isCounterBg = true; }
+  const counterText = uiLayer.children.find(t => t instanceof PIXI.Text && !t.__isMarkedCounter);
+  if (counterText){ counterText.__isMarkedCounter = true; counterText.__isCounterTxt = true; }
+
+  // Mark buttons & bulbs
+  uiLayer.children.forEach(s=>{
+    if (s.cursor === "pointer" && s.hitArea instanceof PIXI.Rectangle){
+      // Guess id by x, y matching coords
+      const bg = getButtonCenter("btn_green");
+      const br = getButtonCenter("btn_red");
+      if (bg && Math.abs(s.x - bg.ref.x) < 2 && Math.abs(s.y - bg.ref.y) < 2) s.__btnId = "btn_green";
+      if (br && Math.abs(s.x - br.ref.x) < 2 && Math.abs(s.y - br.ref.y) < 2) s.__btnId = "btn_red";
+    }
+  });
+  fxLayer.children.forEach((s, i)=>{ s.__lightIndex = i; });
+
+  // mark gridRoot so GRID setter can find it
+  const gr = gridLayer.children.find(c => c instanceof PIXI.Container);
+  if (gr) gr.__isGridRoot = true;
+
+  // Build initial targets and draw
+  rebuildTargets();
+  drawOverlay();
+
+  // Keyboard controls
+  window.addEventListener("keydown", (e)=>{
+    if (e.key === "d" || e.key === "D"){
+      devOn = !devOn;
+      overlay.visible = devOn;
+      drawOverlay();
+    }
+    if (!devOn) return;
+
+    if (e.key === "[")       { selectNext(-1); }
+    else if (e.key === "]")  { selectNext(+1); }
+    else if (e.key === "s" || e.key === "S") { e.preventDefault(); saveJSON(); }
+    else if (e.key.startsWith("Arrow")){
+      const mult = e.shiftKey ? 5 : 1;
+      if (e.key === "ArrowLeft")  nudge(-1, 0, mult);
+      if (e.key === "ArrowRight") nudge(+1, 0, mult);
+      if (e.key === "ArrowUp")    nudge(0, -1, mult);
+      if (e.key === "ArrowDown")  nudge(0, +1, mult);
+    }
+  });
+})();
