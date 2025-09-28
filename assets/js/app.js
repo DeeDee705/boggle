@@ -198,34 +198,65 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
   function setWordCount(n){ counterText.text = String(n); }
   function submitWord(){ if(!selected.length) return; wordsCount++; setWordCount(wordsCount); clearSelection(); }
 
-  // ---------- BUTTONS ----------
-  function btnPaths(base){
-    const s=suf();
-    return { up:`assets/buttons/${base}${s}.png`, down:`assets/buttons/${base}Press${s}.png` };
-  }
-  function findBtn(which){
-    const b = (coords.buttons||[]).find(b => which==="green" ? b.id==="btn_green" : b.id==="btn_red");
-    return b ? { x:b.x, y:b.y } : null;
-  }
-  async function makeButton(which, baseName, onClick){
-    const center = findBtn(which) || (which==="green" ? {x:132,y:430} : {x:188,y:430});
-    const p = btnPaths(baseName);
-    const [texUp, texDown] = await Promise.all([tryLoad(p.up), tryLoad(p.down)]);
-    const s = new PIXI.Sprite(texUp || texDown);
-    s.anchor.set(0.5); s.position.set(center.x, center.y);
-    if (s.width && s.height){
-      const sx = BTN_SIZE.w/s.width, sy = BTN_SIZE.h/s.height; s.scale.set(sx, sy);
-    }
-    s.eventMode="static"; s.cursor="pointer";
-    s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
-    s.on("pointerdown", ()=>{ if (texDown) s.texture = texDown; });
-    s.on("pointerup",   ()=>{ if (texUp)   s.texture = texUp; onClick && onClick(); });
-    s.on("pointerupoutside", ()=>{ if (texUp) s.texture = texUp; });
-    s.on("pointercancel",    ()=>{ if (texUp) s.texture = texUp; });
-    uiLayer.addChild(s);
-  }
-  await makeButton("green","leftButton", submitWord);
-  await makeButton("red","rightButton",   clearSelection);
+ // ---------- BUTTONS (code-drawn) ----------
+function drawCodeButton({w, h, fill, brass=0xB48F42}) {
+  const g = new PIXI.Graphics();
+
+  // base plate
+  g.beginFill(fill, 0.96);
+  g.drawRoundedRect(-w/2, -h/2, w, h, 6);
+  g.endFill();
+
+  // inner highlight
+  g.beginFill(0xffffff, 0.06);
+  g.drawRoundedRect(-w/2 + 2, -h/2 + 2, w - 4, h - 10, 5);
+  g.endFill();
+
+  // brass outline
+  g.lineStyle(1, brass, 0.9);
+  g.drawRoundedRect(-w/2 + 0.5, -h/2 + 0.5, w - 1, h - 1, 6);
+
+  return g;
+}
+
+function findBtn(which){
+  const b = (coords.buttons || []).find(b => which==="green" ? b.id==="btn_green" : b.id==="btn_red");
+  return b ? { x:b.x, y:b.y } : null;
+}
+
+function makeCodeButton(which, onClick){
+  const center = findBtn(which) || (which==="green" ? {x:132,y:430} : {x:188,y:430});
+
+  // theme colors (muted, screen-friendly)
+  const GREEN = 0x2B7E51; // deep green that fits the teal/bronze palette
+  const RED   = 0x8F2D2D; // deep muted red
+  const FILL  = (which === "green") ? GREEN : RED;
+
+  const s = drawCodeButton({ w: BTN_SIZE.w, h: BTN_SIZE.h, fill: FILL });
+  s.position.set(center.x, center.y);
+  s.eventMode = "static";
+  s.cursor = "pointer";
+  s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
+
+  // press feedback (scale + quick shade)
+  const cm = new PIXI.filters.ColorMatrixFilter();
+  cm.brightness(1.0, true);
+  s.filters = [cm];
+
+  s.on("pointerdown", () => { s.scale.set(0.98); cm.brightness(0.9, true); });
+  s.on("pointerup", () => { s.scale.set(1.0); cm.brightness(1.0, true); onClick && onClick(); });
+  s.on("pointerupoutside", () => { s.scale.set(1.0); cm.brightness(1.0, true); });
+  s.on("pointercancel", () => { s.scale.set(1.0); cm.brightness(1.0, true); });
+
+  // mark for Dev-Placement
+  s.__btnId = (which === "green") ? "btn_green" : "btn_red";
+
+  uiLayer.addChild(s);
+}
+
+await makeCodeButton("green",  submitWord);   // enter/confirm word
+await makeCodeButton("red",    clearSelection); // clear current selection
+
 
   // ---------- TIMER ----------
   const faceTL = coords.timer && coords.timer.face ? { x:coords.timer.face.x, y:coords.timer.face.y } : { x:140, y:392 };
