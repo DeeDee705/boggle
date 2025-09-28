@@ -1,33 +1,9 @@
-// assets/app.js  (top of file)
+// assets/js/app.js
 import { Trie } from '../../core/trie.js?v=17';
-import { isValidPath, pathToWord, scoreWord } from '../../core/gameCore.js?v=17';
-// (optional for cache busting)
-// import { Trie } from '../core/trie.js?v=16';
-// import { isValidPath, pathToWord, scoreWord } from '../core/gameCore.js?v=16';
+import { isValidPath, pathToWord, scoreWord } from '../../core/gameCore.js?v=17'; // (not used yet, but fine to keep)
 
-
-// boot
+// ------------------ BOOT ------------------
 const trie = new Trie();
-// TODO: load word list and insert into trie at startup
-// words.forEach(w => trie.insert(w));
-
-let currentPath = [];
-let foundWords = new Set();
-let roundScore = 0;
-
-function submitWord(grid){
-  const word = pathToWord(currentPath, grid).toLowerCase();
-  if (!isValidPath(currentPath)) return toast("Invalid path");
-  if (word.length < 3) return toast("Too short");
-  if (!trie.hasWord(word)) return toast("Not in dictionary");
-  if (foundWords.has(word)) return toast("Already found");
-
-  const pts = scoreWord(word);
-  roundScore += pts;
-  foundWords.add(word);
-  counter.increment(); // your existing UI hook
-  clearSelection();    // your existing selection reset
-}
 
 // ------------------ CONFIG ------------------
 const BASE = { w: 320, h: 480 }; // artboard size
@@ -36,9 +12,9 @@ const COORDS_URL = "assets/ui_coords_full_with_timer_counter.json"; // JSON in /
 const GRID = {
   rows: 5, cols: 5,
   size: 38, gutter: 7,
-  topLeftCenter: { x: 72.000, y: 126.000 }, // your latest
-  scale: 0.96,        // shrink whole raster slightly (tweak here)
-  overlayScale: 0.95  // overlay slightly smaller than tile base
+  topLeftCenter: { x: 72.000, y: 126.000 },
+  scale: 0.96,
+  overlayScale: 0.95
 };
 
 const TIMER_R   = 26;
@@ -165,7 +141,7 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     return { cont, letter, overlay };
   }
 
-  // grid root anchored at top-left tile center, so scaling won't drift the anchor
+  // grid root anchored at top-left tile center
   const gridRoot = new PIXI.Container();
   gridLayer.addChild(gridRoot);
 
@@ -184,15 +160,24 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
   gridRoot.position.set(GRID.topLeftCenter.x, GRID.topLeftCenter.y);
   gridRoot.scale.set(GRID.scale ?? 1);
 
-  // letters (placeholder)
+  // store characters by [r][c]
+  const charGrid = Array.from({ length: GRID.rows }, () => Array(GRID.cols).fill(""));
+
+  // letters (simple weighted MVP)
   const ALPH="EEEEEEEEEEEEAAAAAAAIIIIIIIONNNNRRRRTTTTTLLLLSSSSUUUUDDGGBBCCMMPPFFHHVVWWYYKJXQZ";
   function rollLetters(){
-    for (let i=0;i<letters.length;i++){
-      letters[i].text = ALPH[Math.floor(Math.random()*ALPH.length)];
-      letters[i].alpha=1; tiles[i].cont.alpha=1; if (tiles[i].overlay) tiles[i].overlay.tint=0xFFFFFF;
+    for (let r=0; r<GRID.rows; r++){
+      for (let c=0; c<GRID.cols; c++){
+        const i = r * GRID.cols + c;
+        const ch = ALPH[Math.floor(Math.random()*ALPH.length)];
+        charGrid[r][c] = ch;
+        letters[i].text = ch;
+        letters[i].alpha = 1;
+        tiles[i].cont.alpha = 1;
+        if (tiles[i].overlay) tiles[i].overlay.tint=0xFFFFFF;
+      }
     }
   }
-    // ...your rollLetters() function ends here
 
   // --- DICTIONARY (EN) ---------------------------------------------------
   try {
@@ -200,7 +185,7 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     if (!res.ok) throw new Error(res.statusText);
     const txt = await res.text();
     const words = txt.split(/\r?\n/).map(w => w.trim().toLowerCase()).filter(Boolean);
-    words.forEach(w => trie.insert(w));   // uses the Trie you created at top
+    words.forEach(w => trie.insert(w));
     console.log(`[dict] EN loaded: ${words.length} words`);
   } catch (e) {
     console.warn('[dict] load failed, using tiny fallback', e);
@@ -209,38 +194,32 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
 
   // --- DEBUG: grid override via ?grid=25letters ---------------------------
   const params = new URLSearchParams(location.search);
-  // ...
+  const gridParam = params.get('grid');
 
-  // --- DEBUG: grid override via ?grid=25letters --------------------------------
-const params = new URLSearchParams(location.search);
-const gridParam = params.get('grid');
-
-function applyGridString(s){
-  const arr = s.replace(/[^A-Za-z]/g, '').toUpperCase().split('');
-  const N = GRID.rows * GRID.cols;
-  if (arr.length !== N) { console.warn('[grid] expected', N, 'letters'); return false; }
-  for (let r = 0; r < GRID.rows; r++){
-    for (let c = 0; c < GRID.cols; c++){
-      const i = r * GRID.cols + c;
-      const ch = arr[i];
-      charGrid[r][c] = ch;
-      letters[i].text = ch;
-      letters[i].alpha = 1;
-      tiles[i].cont.alpha = 1;
-      if (tiles[i].overlay) tiles[i].overlay.tint = 0xFFFFFF;
+  function applyGridString(s){
+    const arr = s.replace(/[^A-Za-z]/g, '').toUpperCase().split('');
+    const N = GRID.rows * GRID.cols;
+    if (arr.length !== N) { console.warn('[grid] expected', N, 'letters'); return false; }
+    for (let r = 0; r < GRID.rows; r++){
+      for (let c = 0; c < GRID.cols; c++){
+        const i = r * GRID.cols + c;
+        const ch = arr[i];
+        charGrid[r][c] = ch;
+        letters[i].text = ch;
+        letters[i].alpha = 1;
+        tiles[i].cont.alpha = 1;
+        if (tiles[i].overlay) tiles[i].overlay.tint = 0xFFFFFF;
+      }
     }
+    return true;
   }
-  return true;
-}
 
-// Use override if present, else random roll
-if (!(gridParam && applyGridString(gridParam))) {
-  rollLetters();
-}
+  // Use override if present, else random roll
+  if (!(gridParam && applyGridString(gridParam))) {
+    rollLetters();
+  }
 
-  rollLetters();
-
-  // simple select toggle (MVP)
+  // ---------- SELECTION (simple toggle for now) ----------
   const selected=[];
   tiles.forEach((t,i)=>{
     t.cont.on("pointerdown", ()=>{
@@ -249,7 +228,10 @@ if (!(gridParam && applyGridString(gridParam))) {
       else     { selected.push(i);     t.cont.alpha=0.95; if(t.overlay) t.overlay.tint=0xE9FFD6; }
     });
   });
-  function clearSelection(){ selected.splice(0); tiles.forEach(t=>{ t.cont.alpha=1; if(t.overlay) t.overlay.tint=0xFFFFFF; }); }
+  function clearSelection(){
+    selected.splice(0);
+    tiles.forEach(t=>{ t.cont.alpha=1; if(t.overlay) t.overlay.tint=0xFFFFFF; });
+  }
 
   // ---------- COUNTER ----------
   const counterPos = coords.counter
@@ -272,107 +254,112 @@ if (!(gridParam && applyGridString(gridParam))) {
   uiLayer.addChild(counterText);
 
   let wordsCount=0;
+  const foundWords = new Set();
   function setWordCount(n){ counterText.text = String(n); }
-  function submitWord(){ if(!selected.length) return; wordsCount++; setWordCount(wordsCount); clearSelection(); }
 
-// ---------- BUTTONS (code-drawn, flat surface illusion) ----------
+  // ---------- SUBMIT (dictionary-backed) ----------
+  function submitWord(){
+    if (!selected.length) return;
 
-// helper: create vertical gradient texture
-function makeVerticalGradient(topColor, bottomColor, w, h) {
-  const buf = new Uint8Array([
-    (topColor >> 16) & 0xFF, (topColor >> 8) & 0xFF, topColor & 0xFF, 0xFF,
-    (bottomColor >> 16) & 0xFF, (bottomColor >> 8) & 0xFF, bottomColor & 0xFF, 0xFF
-  ]);
-  const tex = PIXI.Texture.fromBuffer(buf, 1, 2);
-  tex.baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR;
-  const spr = new PIXI.Sprite(tex);
-  spr.width = w;
-  spr.height = h;
-  spr.anchor.set(0.5);
-  return spr;
-}
+    // build the word from the currently selected tiles
+    const word = selected.map(i => letters[i].text).join('').toLowerCase();
 
-function drawCodeButton({ w, h, fillTop, fillBottom, brass = 0xB48F42 }) {
-  const cont = new PIXI.Container();
+    if (word.length < 3) { clearSelection(); return; }
+    if (!trie.hasWord(word)) { clearSelection(); return; }
+    if (foundWords.has(word)) { clearSelection(); return; }
 
-  // inset groove around button
-  const groove = new PIXI.Graphics();
-  groove.lineStyle(1, 0x000000, 0.35);
-  groove.drawRoundedRect(-w/2 - 2, -h/2 - 2, w + 4, h + 4, 6);
-  cont.addChild(groove);
+    foundWords.add(word);
+    wordsCount += 1;
+    setWordCount(wordsCount);
+    clearSelection();
+  }
 
-  // gradient face
-  const grad = makeVerticalGradient(fillTop, fillBottom, w, h);
-  cont.addChild(grad);
+  // ---------- BUTTONS (code-drawn) ----------
+  function makeVerticalGradient(topColor, bottomColor, w, h) {
+    const buf = new Uint8Array([
+      (topColor >> 16) & 0xFF, (topColor >> 8) & 0xFF, topColor & 0xFF, 0xFF,
+      (bottomColor >> 16) & 0xFF, (bottomColor >> 8) & 0xFF, bottomColor & 0xFF, 0xFF
+    ]);
+    const tex = PIXI.Texture.fromBuffer(buf, 1, 2);
+    tex.baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR;
+    const spr = new PIXI.Sprite(tex);
+    spr.width = w;
+    spr.height = h;
+    spr.anchor.set(0.5);
+    return spr;
+  }
 
-  // brass outline
-  const outline = new PIXI.Graphics();
-  outline.lineStyle(1, brass, 0.9);
-  outline.drawRoundedRect(-w/2 + 0.5, -h/2 + 0.5, w - 1, h - 1, 6);
-  cont.addChild(outline);
+  function drawCodeButton({ w, h, fillTop, fillBottom, brass = 0xB48F42 }) {
+    const cont = new PIXI.Container();
 
-  // subtle highlight strip
-  const highlight = new PIXI.Graphics();
-  highlight.beginFill(0xffffff, 0.06);
-  highlight.drawRoundedRect(-w/2 + 2, -h/2 + 2, w - 4, h - h*0.65, 5);
-  highlight.endFill();
-  cont.addChild(highlight);
+    const groove = new PIXI.Graphics();
+    groove.lineStyle(1, 0x000000, 0.35);
+    groove.drawRoundedRect(-w/2 - 2, -h/2 - 2, w + 4, h + 4, 6);
+    cont.addChild(groove);
 
-  return cont;
-}
+    const grad = makeVerticalGradient(fillTop, fillBottom, w, h);
+    cont.addChild(grad);
 
-function findBtn(which) {
-  const b = (coords.buttons || []).find(b => which==="green" ? b.id==="btn_green" : b.id==="btn_red");
-  return b ? { x:b.x, y:b.y } : null;
-}
+    const outline = new PIXI.Graphics();
+    outline.lineStyle(1, brass, 0.9);
+    outline.drawRoundedRect(-w/2 + 0.5, -h/2 + 0.5, w - 1, h - 1, 6);
+    cont.addChild(outline);
 
-function makeCodeButton(which, onClick) {
-  const center = findBtn(which) || (which==="green" ? {x:132,y:430} : {x:188,y:430});
+    const highlight = new PIXI.Graphics();
+    highlight.beginFill(0xffffff, 0.06);
+    highlight.drawRoundedRect(-w/2 + 2, -h/2 + 2, w - 4, h - h*0.65, 5);
+    highlight.endFill();
+    cont.addChild(highlight);
 
-  // palette
-  const GREEN_TOP = 0x3DAE70, GREEN_BOTTOM = 0x2B7E51;
-  const RED_TOP   = 0xB34A4A, RED_BOTTOM   = 0x8F2D2D;
+    return cont;
+  }
 
-  const colors = (which==="green")
-    ? { top: GREEN_TOP, bottom: GREEN_BOTTOM }
-    : { top: RED_TOP, bottom: RED_BOTTOM };
+  function findBtn(which) {
+    const b = (coords.buttons || []).find(b => which==="green" ? b.id==="btn_green" : b.id==="btn_red");
+    return b ? { x:b.x, y:b.y } : null;
+  }
 
-  const s = drawCodeButton({
-    w: BTN_SIZE.w, h: BTN_SIZE.h,
-    fillTop: colors.top, fillBottom: colors.bottom
-  });
-  s.position.set(center.x, center.y);
-  s.eventMode = "static";
-  s.cursor = "pointer";
-  s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
+  function makeCodeButton(which, onClick) {
+    const center = findBtn(which) || (which==="green" ? {x:132,y:430} : {x:188,y:430});
 
- // simple shadow (no pixi-filters needed)
-const shadow = new PIXI.Graphics();
-shadow.beginFill(0x000000, 0.28);
-shadow.drawRoundedRect(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h, 6);
-shadow.endFill();
-shadow.position.set(center.x, center.y + 2); // small downward offset
-uiLayer.addChild(shadow);
+    const GREEN_TOP = 0x3DAE70, GREEN_BOTTOM = 0x2B7E51;
+    const RED_TOP   = 0xB34A4A, RED_BOTTOM   = 0x8F2D2D;
 
-// add button sprite on top
-uiLayer.addChild(s);
+    const colors = (which==="green")
+      ? { top: GREEN_TOP, bottom: GREEN_BOTTOM }
+      : { top: RED_TOP, bottom: RED_BOTTOM };
 
-  // press feedback: nudge down, darken a bit
-  s.on("pointerdown", ()=> { s.y += 2; s.scale.set(0.98); });
-  s.on("pointerup", ()=> { s.y -= 2; s.scale.set(1.0); onClick && onClick(); });
-  s.on("pointerupoutside", ()=> { s.y -= 2; s.scale.set(1.0); });
-  s.on("pointercancel", ()=> { s.y -= 2; s.scale.set(1.0); });
+    const s = drawCodeButton({
+      w: BTN_SIZE.w, h: BTN_SIZE.h,
+      fillTop: colors.top, fillBottom: colors.bottom
+    });
+    s.position.set(center.x, center.y);
+    s.eventMode = "static";
+    s.cursor = "pointer";
+    s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
 
-  // mark for Dev-Placement
-  s.__btnId = (which==="green") ? "btn_green" : "btn_red";
+    // simple shadow
+    const shadow = new PIXI.Graphics();
+    shadow.beginFill(0x000000, 0.28);
+    shadow.drawRoundedRect(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h, 6);
+    shadow.endFill();
+    shadow.position.set(center.x, center.y + 2);
+    uiLayer.addChild(shadow);
 
-  uiLayer.addChild(s);
-}
+    uiLayer.addChild(s);
 
-await makeCodeButton("green", submitWord);   // green = confirm/enter word
-await makeCodeButton("red",   clearSelection); // red = clear word
+    // press feedback
+    s.on("pointerdown", ()=> { s.y += 2; s.scale.set(0.98); });
+    s.on("pointerup", ()=> { s.y -= 2; s.scale.set(1.0); onClick && onClick(); });
+    s.on("pointerupoutside", ()=> { s.y -= 2; s.scale.set(1.0); });
+    s.on("pointercancel", ()=> { s.y -= 2; s.scale.set(1.0); });
 
+    s.__btnId = (which==="green") ? "btn_green" : "btn_red";
+    uiLayer.addChild(s);
+  }
 
+  await makeCodeButton("green", submitWord);     // submit
+  await makeCodeButton("red",   clearSelection); // clear
 
   // ---------- TIMER ----------
   const faceTL = coords.timer && coords.timer.face ? { x:coords.timer.face.x, y:coords.timer.face.y } : { x:140, y:392 };
@@ -392,31 +379,31 @@ await makeCodeButton("red",   clearSelection); // red = clear word
     faceContainer.addChild(g);
   }
 
- // ---------- LIGHTS ----------
-const bulbs = [];
-(coords.lights || []).forEach((L, i) => {
-  const LIGHT_R = 2.4;        // was ~3.6
-  const LIGHT_ALPHA = 0.55;   // was 0.7
-  const BLUR = 0.9;           // was 1.4
+  // ---------- LIGHTS ----------
+  const bulbs = [];
+  (coords.lights || []).forEach((L, i) => {
+    const LIGHT_R = 2.4;
+    const LIGHT_ALPHA = 0.55;
+    const BLUR = 0.9;
 
-  const dot = new PIXI.Graphics();
-  dot.beginFill(0xfff080);
-  dot.drawCircle(0, 0, LIGHT_R);
-  dot.endFill();
+    const dot = new PIXI.Graphics();
+    dot.beginFill(0xfff080);
+    dot.drawCircle(0, 0, LIGHT_R);
+    dot.endFill();
 
-  const spr = new PIXI.Sprite(app.renderer.generateTexture(dot));
-  spr.anchor.set(0.5);
-  spr.position.set(L.x, L.y);
-  spr.alpha = LIGHT_ALPHA;
+    const spr = new PIXI.Sprite(app.renderer.generateTexture(dot));
+    spr.anchor.set(0.5);
+    spr.position.set(L.x, L.y);
+    spr.alpha = LIGHT_ALPHA;
 
-  const blur = new PIXI.BlurFilter();
-  blur.blur = BLUR;
-  spr.filters = [blur];
+    const blur = new PIXI.BlurFilter(); // v7 API
+    blur.blur = BLUR;
+    spr.filters = [blur];
 
-  spr.__lightIndex = i;       // keep for dev mode
-  fxLayer.addChild(spr);
-  bulbs.push(spr);
-});
+    spr.__lightIndex = i;
+    fxLayer.addChild(spr);
+    bulbs.push(spr);
+  });
 
   // ---------- ROUND TIMER LOOP ----------
   const ROUND_S=180, WARN_S=10;
@@ -442,13 +429,6 @@ const bulbs = [];
     if (e.key===" "){ e.preventDefault(); running = !running; }
   });
 })();
-/* ======================= DEV PLACEMENT MODE ======================= */
-/* Paste this below the closing "})();" of your init IIFE.            */
-/* Hotkeys:                                                           */
-/*   D           => toggle dev mode                                   */
-/*   [ / ]       => previous / next target                            */
-/*   Arrows      => move ±1px  (Shift+Arrows => ±5px)                 */
-/*   S           => save & download updated JSON                      */
 
 /* ======================= DEV PLACEMENT MODE (robust) ======================= */
 (function devPlacementMode(){
@@ -459,28 +439,23 @@ const bulbs = [];
   let idx = 0;
 
   // ------- ensure markers exist on created nodes -------
-  // gridRoot
   (function markGridRoot(){
     const gr = gridLayer.children.find(c => c instanceof PIXI.Container);
     if (gr) gr.__isGridRoot = true;
   })();
-  // timer face container
   (function markTimer(){
     const faceCont = uiLayer.children.find(c => c instanceof PIXI.Container && c.children && c.children.length);
     if (faceCont) faceCont.__isTimerFace = true;
   })();
-  // counter parts
   (function markCounter(){
     const bg = uiLayer.children.find(g => g instanceof PIXI.Graphics && !g.__isCounterBg);
     const txt = uiLayer.children.find(t => t instanceof PIXI.Text && !t.__isCounterTxt);
     if (bg) bg.__isCounterBg = true;
     if (txt) txt.__isCounterTxt = true;
   })();
-  // buttons
   (function markButtons(){
     uiLayer.children.forEach(s=>{
       if (s.cursor === "pointer" && s.hitArea instanceof PIXI.Rectangle && !s.__btnId){
-        // try to match coords
         const g = (coords.buttons||[]).find(b=>b.id==="btn_green");
         const r = (coords.buttons||[]).find(b=>b.id==="btn_red");
         if (g && Math.abs(s.x-g.x)<3 && Math.abs(s.y-g.y)<3) s.__btnId = "btn_green";
@@ -488,7 +463,6 @@ const bulbs = [];
       }
     });
   })();
-  // lights
   (function markLights(){
     fxLayer.children.forEach((s,i)=>{ if (s && s.__lightIndex==null) s.__lightIndex = i; });
   })();
@@ -500,7 +474,7 @@ const bulbs = [];
   function rebuildTargets(){
     targets = [];
 
-    // GRID (top-left tile center; shows a cyan box)
+    // GRID
     targets.push({
       id: "GRID",
       get: () => ({ x: GRID.topLeftCenter.x, y: GRID.topLeftCenter.y }),
@@ -519,7 +493,7 @@ const bulbs = [];
       }
     });
 
-    // TIMER (top-left in JSON; control as CENTER)
+    // TIMER
     const t = coords.timer && coords.timer.face ? coords.timer.face : null;
     if (t){
       targets.push({
@@ -534,7 +508,7 @@ const bulbs = [];
       });
     }
 
-    // COUNTER (top-left in JSON; control as CENTER)
+    // COUNTER
     const c = coords.counter || null;
     if (c){
       targets.push({
@@ -579,7 +553,7 @@ const bulbs = [];
       });
     }
 
-    // LIGHTS (each bulb)
+    // LIGHTS
     (coords.lights || []).forEach((L, i) => {
       targets.push({
         id: `LIGHT_${String(i+1).padStart(3,"0")}`,
@@ -659,7 +633,6 @@ const bulbs = [];
       devOn = !devOn;
       overlay.visible = devOn;
       hud.visible = devOn;
-      // rebuild targets when turning on, in case assets loaded later
       if (devOn) rebuildTargets();
       drawOverlay();
       console.log("[DEV] toggled:", devOn);
@@ -667,22 +640,18 @@ const bulbs = [];
     }
     if (!devOn) return;
 
-    // cycle: Tab (with Shift), or [ / ]
     if (e.key === "Tab"){ e.preventDefault(); selectNext(e.shiftKey?-1:+1); return; }
     if (e.key === "[" || e.key === "\\"){ e.preventDefault(); selectNext(-1); return; }
     if (e.key === "]" || e.key === "/"){  e.preventDefault(); selectNext(+1); return; }
 
-    // quick jump
     if (e.key === "1"){ selectByName("GRID"); return; }
     if (e.key === "2"){ selectByName("TIMER"); return; }
     if (e.key === "3"){ selectByName("COUNTER"); return; }
     if (e.key === "4"){ selectByName("BTN_GREEN"); return; }
     if (e.key === "5"){ selectByName("BTN_RED"); return; }
 
-    // save
     if (e.key === "s" || e.key === "S"){ e.preventDefault(); saveJSON(); return; }
 
-    // move
     if (e.key.startsWith("Arrow")){
       const mult = e.shiftKey ? 5 : 1;
       if (e.key === "ArrowLeft")  nudge(-1, 0, mult);
