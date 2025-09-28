@@ -1,3 +1,30 @@
+// app.js (ensure your index.html uses <script type="module" src="app.js">)
+import { Trie } from './core/trie.js';
+import { isValidPath, pathToWord, scoreWord } from './core/gameCore.js';
+
+// boot
+const trie = new Trie();
+// TODO: load word list and insert into trie at startup
+// words.forEach(w => trie.insert(w));
+
+let currentPath = [];
+let foundWords = new Set();
+let roundScore = 0;
+
+function submitWord(grid){
+  const word = pathToWord(currentPath, grid).toLowerCase();
+  if (!isValidPath(currentPath)) return toast("Invalid path");
+  if (word.length < 3) return toast("Too short");
+  if (!trie.hasWord(word)) return toast("Not in dictionary");
+  if (foundWords.has(word)) return toast("Already found");
+
+  const pts = scoreWord(word);
+  roundScore += pts;
+  foundWords.add(word);
+  counter.increment(); // your existing UI hook
+  clearSelection();    // your existing selection reset
+}
+
 // ------------------ CONFIG ------------------
 const BASE = { w: 320, h: 480 }; // artboard size
 const COORDS_URL = "assets/ui_coords_full_with_timer_counter.json"; // JSON in /assets
