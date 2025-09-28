@@ -5,7 +5,7 @@ const COORDS_URL = "assets/ui_coords_full_with_timer_counter.json"; // JSON in /
 const GRID = {
   rows: 5, cols: 5,
   size: 38, gutter: 7,
-  topLeftCenter: { x: 67.000, y: 122.000 }, // your latest
+  topLeftCenter: { x: 72.000, y: 126.000 }, // your latest
   scale: 0.96,        // shrink whole raster slightly (tweak here)
   overlayScale: 0.95  // overlay slightly smaller than tile base
 };
