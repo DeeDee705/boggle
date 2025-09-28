@@ -263,7 +263,6 @@ function clearSelection(){
       letters[i].tint = LETTER_TINT_SELECTED; // turn yellow
     }
   });
-});
 
 function clearSelection(){
   selected.length = 0;
