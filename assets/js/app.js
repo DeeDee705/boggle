@@ -198,64 +198,99 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
   function setWordCount(n){ counterText.text = String(n); }
   function submitWord(){ if(!selected.length) return; wordsCount++; setWordCount(wordsCount); clearSelection(); }
 
- // ---------- BUTTONS (code-drawn) ----------
-function drawCodeButton({w, h, fill, brass=0xB48F42}) {
-  const g = new PIXI.Graphics();
+// ---------- BUTTONS (code-drawn, flat surface illusion) ----------
 
-  // base plate
-  g.beginFill(fill, 0.96);
-  g.drawRoundedRect(-w/2, -h/2, w, h, 6);
-  g.endFill();
-
-  // inner highlight
-  g.beginFill(0xffffff, 0.06);
-  g.drawRoundedRect(-w/2 + 2, -h/2 + 2, w - 4, h - 10, 5);
-  g.endFill();
-
-  // brass outline
-  g.lineStyle(1, brass, 0.9);
-  g.drawRoundedRect(-w/2 + 0.5, -h/2 + 0.5, w - 1, h - 1, 6);
-
-  return g;
+// helper: create vertical gradient texture
+function makeVerticalGradient(topColor, bottomColor, w, h) {
+  const buf = new Uint8Array([
+    (topColor >> 16) & 0xFF, (topColor >> 8) & 0xFF, topColor & 0xFF, 0xFF,
+    (bottomColor >> 16) & 0xFF, (bottomColor >> 8) & 0xFF, bottomColor & 0xFF, 0xFF
+  ]);
+  const tex = PIXI.Texture.fromBuffer(buf, 1, 2);
+  tex.baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR;
+  const spr = new PIXI.Sprite(tex);
+  spr.width = w;
+  spr.height = h;
+  spr.anchor.set(0.5);
+  return spr;
 }
 
-function findBtn(which){
+function drawCodeButton({ w, h, fillTop, fillBottom, brass = 0xB48F42 }) {
+  const cont = new PIXI.Container();
+
+  // inset groove around button
+  const groove = new PIXI.Graphics();
+  groove.lineStyle(1, 0x000000, 0.35);
+  groove.drawRoundedRect(-w/2 - 2, -h/2 - 2, w + 4, h + 4, 6);
+  cont.addChild(groove);
+
+  // gradient face
+  const grad = makeVerticalGradient(fillTop, fillBottom, w, h);
+  cont.addChild(grad);
+
+  // brass outline
+  const outline = new PIXI.Graphics();
+  outline.lineStyle(1, brass, 0.9);
+  outline.drawRoundedRect(-w/2 + 0.5, -h/2 + 0.5, w - 1, h - 1, 6);
+  cont.addChild(outline);
+
+  // subtle highlight strip
+  const highlight = new PIXI.Graphics();
+  highlight.beginFill(0xffffff, 0.06);
+  highlight.drawRoundedRect(-w/2 + 2, -h/2 + 2, w - 4, h - h*0.65, 5);
+  highlight.endFill();
+  cont.addChild(highlight);
+
+  return cont;
+}
+
+function findBtn(which) {
   const b = (coords.buttons || []).find(b => which==="green" ? b.id==="btn_green" : b.id==="btn_red");
   return b ? { x:b.x, y:b.y } : null;
 }
 
-function makeCodeButton(which, onClick){
+function makeCodeButton(which, onClick) {
   const center = findBtn(which) || (which==="green" ? {x:132,y:430} : {x:188,y:430});
 
-  // theme colors (muted, screen-friendly)
-  const GREEN = 0x2B7E51; // deep green that fits the teal/bronze palette
-  const RED   = 0x8F2D2D; // deep muted red
-  const FILL  = (which === "green") ? GREEN : RED;
+  // palette
+  const GREEN_TOP = 0x3DAE70, GREEN_BOTTOM = 0x2B7E51;
+  const RED_TOP   = 0xB34A4A, RED_BOTTOM   = 0x8F2D2D;
 
-  const s = drawCodeButton({ w: BTN_SIZE.w, h: BTN_SIZE.h, fill: FILL });
+  const colors = (which==="green")
+    ? { top: GREEN_TOP, bottom: GREEN_BOTTOM }
+    : { top: RED_TOP, bottom: RED_BOTTOM };
+
+  const s = drawCodeButton({
+    w: BTN_SIZE.w, h: BTN_SIZE.h,
+    fillTop: colors.top, fillBottom: colors.bottom
+  });
   s.position.set(center.x, center.y);
   s.eventMode = "static";
   s.cursor = "pointer";
   s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
 
-  // press feedback (scale + quick shade)
-  const cm = new PIXI.filters.ColorMatrixFilter();
-  cm.brightness(1.0, true);
-  s.filters = [cm];
+  // shadow filter (cast upward)
+  const shadow = new PIXI.filters.DropShadowFilter({
+    alpha: 0.4, blur: 3, distance: 2,
+    rotation: 270, color: 0x000000
+  });
+  s.filters = [shadow];
 
-  s.on("pointerdown", () => { s.scale.set(0.98); cm.brightness(0.9, true); });
-  s.on("pointerup", () => { s.scale.set(1.0); cm.brightness(1.0, true); onClick && onClick(); });
-  s.on("pointerupoutside", () => { s.scale.set(1.0); cm.brightness(1.0, true); });
-  s.on("pointercancel", () => { s.scale.set(1.0); cm.brightness(1.0, true); });
+  // press feedback: nudge down, darken a bit
+  s.on("pointerdown", ()=> { s.y += 2; s.scale.set(0.98); });
+  s.on("pointerup", ()=> { s.y -= 2; s.scale.set(1.0); onClick && onClick(); });
+  s.on("pointerupoutside", ()=> { s.y -= 2; s.scale.set(1.0); });
+  s.on("pointercancel", ()=> { s.y -= 2; s.scale.set(1.0); });
 
   // mark for Dev-Placement
-  s.__btnId = (which === "green") ? "btn_green" : "btn_red";
+  s.__btnId = (which==="green") ? "btn_green" : "btn_red";
 
   uiLayer.addChild(s);
 }
 
-await makeCodeButton("green",  submitWord);   // enter/confirm word
-await makeCodeButton("red",    clearSelection); // clear current selection
+await makeCodeButton("green", submitWord);   // green = confirm/enter word
+await makeCodeButton("red",   clearSelection); // red = clear word
+
 
 
   // ---------- TIMER ----------
