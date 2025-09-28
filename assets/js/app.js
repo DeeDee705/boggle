@@ -218,6 +218,38 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
   if (!(gridParam && applyGridString(gridParam))) {
     rollLetters();
   }
+// ---------- SELECTION (simple toggle for now) ----------
+const LETTER_TINT_SELECTED = 0xFFD200; // yellow
+const LETTER_TINT_DEFAULT  = 0xFFFFFF; // reset
+
+const selected = [];
+tiles.forEach((t,i)=>{
+  t.cont.on("pointerdown", ()=>{
+    const k = selected.indexOf(i);
+    if (k >= 0){
+      // deselect
+      selected.splice(k,1);
+      t.cont.alpha = 1;
+      if (t.overlay) t.overlay.tint = 0xFFFFFF;
+      letters[i].tint = LETTER_TINT_DEFAULT;
+    } else {
+      // select
+      selected.push(i);
+      t.cont.alpha = 0.95;
+      if (t.overlay) t.overlay.tint = 0xE9FFD6;
+      letters[i].tint = LETTER_TINT_SELECTED; // turn yellow
+    }
+  });
+});
+
+function clearSelection(){
+  selected.splice(0);
+  tiles.forEach((t, idx)=>{
+    t.cont.alpha = 1;
+    if (t.overlay) t.overlay.tint = 0xFFFFFF;
+    letters[idx].tint = LETTER_TINT_DEFAULT; // reset to default
+  });
+}
 
   // ---------- SELECTION (simple toggle for now) ----------
   const selected=[];
