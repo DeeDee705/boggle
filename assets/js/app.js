@@ -292,45 +292,76 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
 /*   Arrows      => move ±1px  (Shift+Arrows => ±5px)                 */
 /*   S           => save & download updated JSON                      */
 
+/* ======================= DEV PLACEMENT MODE (robust) ======================= */
 (function devPlacementMode(){
-  // Wait until PIXI is ready and our globals from init exist
   if (!app || !root) return;
 
   let devOn = false;
   let targets = [];
   let idx = 0;
 
-  // Helpers to find objects we created in init()
-  function getButtonCenter(id){
-    const b = (coords.buttons||[]).find(x => x.id === id);
-    return b ? {x:b.x, y:b.y, ref:b} : null;
+  // ------- ensure markers exist on created nodes -------
+  // gridRoot
+  (function markGridRoot(){
+    const gr = gridLayer.children.find(c => c instanceof PIXI.Container);
+    if (gr) gr.__isGridRoot = true;
+  })();
+  // timer face container
+  (function markTimer(){
+    const faceCont = uiLayer.children.find(c => c instanceof PIXI.Container && c.children && c.children.length);
+    if (faceCont) faceCont.__isTimerFace = true;
+  })();
+  // counter parts
+  (function markCounter(){
+    const bg = uiLayer.children.find(g => g instanceof PIXI.Graphics && !g.__isCounterBg);
+    const txt = uiLayer.children.find(t => t instanceof PIXI.Text && !t.__isCounterTxt);
+    if (bg) bg.__isCounterBg = true;
+    if (txt) txt.__isCounterTxt = true;
+  })();
+  // buttons
+  (function markButtons(){
+    uiLayer.children.forEach(s=>{
+      if (s.cursor === "pointer" && s.hitArea instanceof PIXI.Rectangle && !s.__btnId){
+        // try to match coords
+        const g = (coords.buttons||[]).find(b=>b.id==="btn_green");
+        const r = (coords.buttons||[]).find(b=>b.id==="btn_red");
+        if (g && Math.abs(s.x-g.x)<3 && Math.abs(s.y-g.y)<3) s.__btnId = "btn_green";
+        if (r && Math.abs(s.x-r.x)<3 && Math.abs(s.y-r.y)<3) s.__btnId = "btn_red";
+      }
+    });
+  })();
+  // lights
+  (function markLights(){
+    fxLayer.children.forEach((s,i)=>{ if (s && s.__lightIndex==null) s.__lightIndex = i; });
+  })();
+
+  function getButton(id){
+    return (coords.buttons||[]).find(b => b.id === id) || null;
   }
 
-  // Build the selectable target list
   function rebuildTargets(){
     targets = [];
 
-    // 1) GRID (top-left tile center)
+    // GRID (top-left tile center; shows a cyan box)
     targets.push({
       id: "GRID",
       get: () => ({ x: GRID.topLeftCenter.x, y: GRID.topLeftCenter.y }),
       set: (p) => {
         GRID.topLeftCenter.x = p.x;
         GRID.topLeftCenter.y = p.y;
-        // our code uses gridRoot positioned at the top-left tile center
         const gr = gridLayer.children.find(c => c.__isGridRoot);
-        if (gr) gr.position.set(GRID.topLeftCenter.x, GRID.topLeftCenter.y);
+        if (gr) gr.position.set(p.x, p.y);
       },
       draw: (g) => {
         const W = GRID.cols*GRID.size + (GRID.cols-1)*GRID.gutter;
         const H = GRID.rows*GRID.size + (GRID.rows-1)*GRID.gutter;
         const x = GRID.topLeftCenter.x - GRID.size/2;
         const y = GRID.topLeftCenter.y - GRID.size/2;
-        g.lineStyle(1, 0x00ffff, 0.9).drawRect(x, y, W*(GRID.scale||1), H*(GRID.scale||1));
+        g.lineStyle(1, 0x00ffff, 0.95).drawRect(x, y, W*(GRID.scale||1), H*(GRID.scale||1));
       }
     });
 
-    // 2) TIMER (stored as top-left in JSON; we show/adjust by CENTER)
+    // TIMER (top-left in JSON; control as CENTER)
     const t = coords.timer && coords.timer.face ? coords.timer.face : null;
     if (t){
       targets.push({
@@ -341,14 +372,11 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
           const cont = uiLayer.children.find(c => c.__isTimerFace);
           if (cont) cont.position.set(p.x, p.y);
         },
-        draw: (g) => {
-          const cx = t.x + TIMER_R, cy = t.y + TIMER_R;
-          g.lineStyle(1, 0xffcc00, 0.9).drawCircle(cx, cy, TIMER_R+2);
-        }
+        draw: (g) => g.lineStyle(1, 0xffcc00, 0.95).drawCircle(t.x + TIMER_R, t.y + TIMER_R, TIMER_R+2)
       });
     }
 
-    // 3) COUNTER (stored top-left; adjust via CENTER)
+    // COUNTER (top-left in JSON; control as CENTER)
     const c = coords.counter || null;
     if (c){
       targets.push({
@@ -358,45 +386,42 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
           c.x = p.x - COUNTER_R; c.y = p.y - COUNTER_R;
           const bg = uiLayer.children.find(s => s.__isCounterBg);
           const txt = uiLayer.children.find(s => s.__isCounterTxt);
-          if (bg){ bg.position.set(p.x, p.y); }
-          if (txt){ txt.position.set(p.x, p.y); }
+          if (bg) bg.position.set(p.x, p.y);
+          if (txt) txt.position.set(p.x, p.y);
         },
-        draw: (g) => {
-          const cx = c.x + COUNTER_R, cy = c.y + COUNTER_R;
-          g.lineStyle(1, 0x66ff66, 0.9).drawCircle(cx, cy, COUNTER_R+2);
-        }
+        draw: (g) => g.lineStyle(1, 0x66ff66, 0.95).drawCircle(c.x + COUNTER_R, c.y + COUNTER_R, COUNTER_R+2)
       });
     }
 
-    // 4) BUTTONS (centers)
-    const bg = getButtonCenter("btn_green");
-    const br = getButtonCenter("btn_red");
+    // BUTTONS
+    const bg = getButton("btn_green");
     if (bg){
       targets.push({
         id: "BTN_GREEN",
-        get: () => ({ x: bg.ref.x, y: bg.ref.y }),
+        get: () => ({ x: bg.x, y: bg.y }),
         set: (p) => {
-          bg.ref.x = p.x; bg.ref.y = p.y;
+          bg.x = p.x; bg.y = p.y;
           const spr = uiLayer.children.find(s => s.__btnId === "btn_green");
           if (spr) spr.position.set(p.x, p.y);
         },
-        draw: (g) => g.lineStyle(1, 0x66ffcc, 0.9).drawRect(bg.ref.x-30, bg.ref.y-12, 60, 24)
+        draw: (g) => g.lineStyle(1, 0x66ffcc, 0.95).drawRect(bg.x-30, bg.y-12, 60, 24)
       });
     }
+    const br = getButton("btn_red");
     if (br){
       targets.push({
         id: "BTN_RED",
-        get: () => ({ x: br.ref.x, y: br.ref.y }),
+        get: () => ({ x: br.x, y: br.y }),
         set: (p) => {
-          br.ref.x = p.x; br.ref.y = p.y;
+          br.x = p.x; br.y = p.y;
           const spr = uiLayer.children.find(s => s.__btnId === "btn_red");
           if (spr) spr.position.set(p.x, p.y);
         },
-        draw: (g) => g.lineStyle(1, 0xff6666, 0.9).drawRect(br.ref.x-30, br.ref.y-12, 60, 24)
+        draw: (g) => g.lineStyle(1, 0xff6666, 0.95).drawRect(br.x-30, br.y-12, 60, 24)
       });
     }
 
-    // 5) LIGHTS (individual bulbs)
+    // LIGHTS (each bulb)
     (coords.lights || []).forEach((L, i) => {
       targets.push({
         id: `LIGHT_${String(i+1).padStart(3,"0")}`,
@@ -406,41 +431,46 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
           const b = fxLayer.children.find(s => s.__lightIndex === i);
           if (b) b.position.set(p.x, p.y);
         },
-        draw: (g) => g.lineStyle(1, 0xfff080, 0.9).drawCircle(L.x, L.y, 5)
+        draw: (g) => g.lineStyle(1, 0xfff080, 0.95).drawCircle(L.x, L.y, 5)
       });
     });
   }
 
-  // Visual overlay
+  // overlay HUD
   const overlay = new PIXI.Graphics();
   overlay.zIndex = 9999;
-  root.addChild(overlay);
   root.sortableChildren = true;
+  root.addChild(overlay);
+
+  const hud = new PIXI.Text("", { fontFamily:"monospace", fontSize:10, fill:0xffffff });
+  hud.position.set(6, 6);
+  root.addChild(hud);
+  hud.visible = false;
 
   function drawOverlay(){
     overlay.clear();
+    hud.visible = devOn;
     if (!devOn || targets.length === 0) return;
     const t = targets[idx];
     t.draw(overlay);
 
-    // crosshair
     const p = t.get();
-    overlay.lineStyle(1, 0xffffff, 0.7);
-    overlay.moveTo(p.x - 6, p.y); overlay.lineTo(p.x + 6, p.y);
-    overlay.moveTo(p.x, p.y - 6); overlay.lineTo(p.x, p.y + 6);
+    overlay.lineStyle(1, 0xffffff, 0.8);
+    overlay.moveTo(p.x-6, p.y); overlay.lineTo(p.x+6, p.y);
+    overlay.moveTo(p.x, p.y-6); overlay.lineTo(p.x, p.y+6);
 
-    // label
-    const label = new PIXI.Text(`${t.id}  (${Math.round(p.x)}, ${Math.round(p.y)})`, {
-      fontFamily: "monospace", fontSize: 10, fill: 0xffffff
-    });
-    label.position.set(p.x + 8, p.y + 8);
-    overlay.addChild(label);
+    hud.text = `DEV ON — target: ${t.id} @ (${Math.round(p.x)}, ${Math.round(p.y)})\nKeys: D toggle, Tab/[/]/\\ prev/next, arrows (Shift=×5), S save JSON, 1..5 quick jump`;
   }
 
   function selectNext(d){
     if (targets.length === 0) return;
     idx = (idx + d + targets.length) % targets.length;
     drawOverlay();
+  }
+
+  function selectByName(name){
+    const j = targets.findIndex(t => t.id === name);
+    if (j >= 0){ idx = j; drawOverlay(); }
   }
 
   function nudge(dx, dy, mult){
@@ -454,7 +484,6 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
   }
 
   function saveJSON(){
-    // Rebuild buttons array from coords (already updated)
     const blob = new Blob([JSON.stringify(coords, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -463,55 +492,47 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     URL.revokeObjectURL(a.href);
   }
 
-  // Hook up nodes we want to move live (timer face, counter pieces, buttons, bulbs)
-  // Mark some sprites so setters can find them quickly
-  // (We created them in init(); mark them now, safely if they exist.)
-  const faceCont = uiLayer.children.find(c => c instanceof PIXI.Container && c.children.length);
-  if (faceCont) faceCont.__isTimerFace = true;
+  // build once now
+  rebuildTargets(); drawOverlay();
 
-  const counterBg = uiLayer.children.find(g => g instanceof PIXI.Graphics && !g.__isMarkedCounter);
-  if (counterBg){ counterBg.__isMarkedCounter = true; counterBg.__isCounterBg = true; }
-  const counterText = uiLayer.children.find(t => t instanceof PIXI.Text && !t.__isMarkedCounter);
-  if (counterText){ counterText.__isMarkedCounter = true; counterText.__isCounterTxt = true; }
-
-  // Mark buttons & bulbs
-  uiLayer.children.forEach(s=>{
-    if (s.cursor === "pointer" && s.hitArea instanceof PIXI.Rectangle){
-      // Guess id by x, y matching coords
-      const bg = getButtonCenter("btn_green");
-      const br = getButtonCenter("btn_red");
-      if (bg && Math.abs(s.x - bg.ref.x) < 2 && Math.abs(s.y - bg.ref.y) < 2) s.__btnId = "btn_green";
-      if (br && Math.abs(s.x - br.ref.x) < 2 && Math.abs(s.y - br.ref.y) < 2) s.__btnId = "btn_red";
-    }
-  });
-  fxLayer.children.forEach((s, i)=>{ s.__lightIndex = i; });
-
-  // mark gridRoot so GRID setter can find it
-  const gr = gridLayer.children.find(c => c instanceof PIXI.Container);
-  if (gr) gr.__isGridRoot = true;
-
-  // Build initial targets and draw
-  rebuildTargets();
-  drawOverlay();
-
-  // Keyboard controls
+  // key handling
   window.addEventListener("keydown", (e)=>{
     if (e.key === "d" || e.key === "D"){
       devOn = !devOn;
       overlay.visible = devOn;
+      hud.visible = devOn;
+      // rebuild targets when turning on, in case assets loaded later
+      if (devOn) rebuildTargets();
       drawOverlay();
+      console.log("[DEV] toggled:", devOn);
+      return;
     }
     if (!devOn) return;
 
-    if (e.key === "[")       { selectNext(-1); }
-    else if (e.key === "]")  { selectNext(+1); }
-    else if (e.key === "s" || e.key === "S") { e.preventDefault(); saveJSON(); }
-    else if (e.key.startsWith("Arrow")){
+    // cycle: Tab (with Shift), or [ / ]
+    if (e.key === "Tab"){ e.preventDefault(); selectNext(e.shiftKey?-1:+1); return; }
+    if (e.key === "[" || e.key === "\\"){ e.preventDefault(); selectNext(-1); return; }
+    if (e.key === "]" || e.key === "/"){  e.preventDefault(); selectNext(+1); return; }
+
+    // quick jump
+    if (e.key === "1"){ selectByName("GRID"); return; }
+    if (e.key === "2"){ selectByName("TIMER"); return; }
+    if (e.key === "3"){ selectByName("COUNTER"); return; }
+    if (e.key === "4"){ selectByName("BTN_GREEN"); return; }
+    if (e.key === "5"){ selectByName("BTN_RED"); return; }
+
+    // save
+    if (e.key === "s" || e.key === "S"){ e.preventDefault(); saveJSON(); return; }
+
+    // move
+    if (e.key.startsWith("Arrow")){
       const mult = e.shiftKey ? 5 : 1;
       if (e.key === "ArrowLeft")  nudge(-1, 0, mult);
       if (e.key === "ArrowRight") nudge(+1, 0, mult);
       if (e.key === "ArrowUp")    nudge(0, -1, mult);
       if (e.key === "ArrowDown")  nudge(0, +1, mult);
+      console.log("[DEV] nudge", targets[idx].id);
+      return;
     }
   });
 })();
