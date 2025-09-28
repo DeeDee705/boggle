@@ -12,7 +12,7 @@ const GRID = {
 
 const TIMER_R   = 26;
 const COUNTER_R = 18;
-const BTN_SIZE  = { w: 48, h: 18 };
+const BTN_SIZE  = { w: 48, h: 15 };
 
 // ------------------ PIXI APP ------------------
 const app = new PIXI.Application({
