@@ -1,12 +1,13 @@
 // ------------------ CONFIG ------------------
 const BASE = { w: 320, h: 480 }; // artboard size
-const COORDS_URL = "assets/ui_coords_full_with_timer_counter.json"; // put JSON in /assets
+const COORDS_URL = "assets/ui_coords_full_with_timer_counter.json"; // JSON in /assets
 
 const GRID = {
   rows: 5, cols: 5,
   size: 38, gutter: 7,
-  // raise grid higher (was 254.0)
-  topLeftCenter: { x: 67.000, y: 122.000 }
+  topLeftCenter: { x: 67.000, y: 122.000 }, // your latest
+  scale: 0.92,        // shrink whole raster slightly (tweak here)
+  overlayScale: 0.95  // overlay slightly smaller than tile base
 };
 
 const TIMER_R   = 26;
@@ -29,7 +30,7 @@ const uiLayer    = new PIXI.Container();
 const fxLayer    = new PIXI.Container();
 root.addChild(frameLayer, gridLayer, uiLayer, fxLayer);
 
-// Scale & center to viewport
+// Center + scale to viewport
 function layout(){
   const vw = app.renderer.width, vh = app.renderer.height;
   const s = Math.min(vw/BASE.w, vh/BASE.h);
@@ -45,25 +46,21 @@ layout(); requestAnimationFrame(layout);
 const DPR = window.devicePixelRatio || 1;
 const suf = () => (DPR >= 2.5 ? "@3x" : DPR >= 1.5 ? "@2x" : "@1x");
 
-// robust texture loader (works v6/v7)
 async function tryLoad(url){
   return new Promise((resolve) => {
     const tex = PIXI.Texture.from(url);
     const bt = tex.baseTexture;
     if (bt.valid) return resolve(tex);
     bt.once("loaded", () => resolve(tex));
-    bt.once("error", () => resolve(null));
+    bt.once("error",  () => resolve(null));
   });
 }
 async function firstTexture(paths){
-  for (const p of paths){
-    const t = await tryLoad(p);
-    if (t) return t;
-  }
+  for (const p of paths){ const t = await tryLoad(p); if (t) return t; }
   return null;
 }
 
-// ------------------ LOAD COORDS ------------------
+// ------------------ LOAD COORDS + INIT ------------------
 let coords = { lights: [], buttons: [], timer: {}, counter: null };
 
 (async function init(){
@@ -79,7 +76,7 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     coords.lights  = [];
   }
 
-  // ------------------ FRAME ------------------
+  // ---------- FRAME ----------
   const frameTex = await firstTexture([
     `assets/frame/frame${suf()}.png`,
     `assets/frame/frame@1x.png`
@@ -95,88 +92,92 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     frameLayer.addChild(g);
   }
 
-  // ------------------ TILES (coded base + overlay + letters) ------------------
+  // ---------- TILES (coded base + overlay + letters) ----------
   const overlayTex = await firstTexture([
     `assets/tiles/tile_base${suf()}.png`,
     `assets/tiles/tile_base@1x.png`
   ]);
 
-function makeTile(x, y, size){
-  const cont = new PIXI.Container();
-  cont.position.set(x,y);
-  cont.eventMode = "static";
+  function makeTile(localX, localY, size){
+    const cont = new PIXI.Container();
+    cont.position.set(localX, localY);       // local (relative) position in grid root
+    cont.eventMode = "static";
 
-  // base white
-  const baseG = new PIXI.Graphics();
-  baseG.lineStyle(1, 0xcad3df, 0.9);
-  baseG.beginFill(0xf8fbff);
-  baseG.drawRoundedRect(-size/2, -size/2, size, size, 5);
-  baseG.endFill();
-  cont.addChild(baseG);
+    // 1) coded white base
+    const baseG = new PIXI.Graphics();
+    baseG.lineStyle(1, 0xcad3df, 0.9);
+    baseG.beginFill(0xf8fbff);
+    baseG.drawRoundedRect(-size/2, -size/2, size, size, 5);
+    baseG.endFill();
+    cont.addChild(baseG);
 
-  // letter
-  const letter = new PIXI.Text("", new PIXI.TextStyle({
-    fontFamily:"system-ui, -apple-system, Segoe UI, Roboto",
-    fontWeight:"800",
-    fontSize: Math.round(size*0.72),
-    fill: 0x23303a,
-    stroke: 0xffffff,
-    strokeThickness: 2
-  }));
-  letter.anchor.set(0.5);
-  letter.position.y -= 2; // nudge up
-  cont.addChild(letter);
+    // 2) letter
+    const letter = new PIXI.Text("", new PIXI.TextStyle({
+      fontFamily:"system-ui, -apple-system, Segoe UI, Roboto",
+      fontWeight:"800",
+      fontSize: Math.round(size*0.72),
+      fill:0x23303a, stroke:0xffffff, strokeThickness:2
+    }));
+    letter.anchor.set(0.5);
+    letter.position.y -= 2; // visually centered
+    cont.addChild(letter);
 
-  // overlay
-  let overlay = null;
-  if (overlayTex){
-    overlay = new PIXI.Sprite(overlayTex);
-    overlay.anchor.set(0.5);
-    overlay.width = overlay.height = size * 0.95; // tighter fit
-    cont.addChild(overlay);
+    // 3) overlay
+    let overlay = null;
+    if (overlayTex){
+      overlay = new PIXI.Sprite(overlayTex);
+      overlay.anchor.set(0.5);
+      overlay.width = overlay.height = size * (GRID.overlayScale ?? 0.95);
+      cont.addChild(overlay);
+    }
+
+    return { cont, letter, overlay };
   }
 
-  return { cont, letter, overlay };
-}
+  // grid root anchored at top-left tile center, so scaling won't drift the anchor
+  const gridRoot = new PIXI.Container();
+  gridLayer.addChild(gridRoot);
+
   const tiles = [], letters = [];
   for (let r=0;r<GRID.rows;r++){
     for (let c=0;c<GRID.cols;c++){
-      const cx = GRID.topLeftCenter.x + c*(GRID.size+GRID.gutter);
-      const cy = GRID.topLeftCenter.y + r*(GRID.size+GRID.gutter);
-      const { cont, letter, overlay } = makeTile(cx, cy, GRID.size);
-      gridLayer.addChild(cont);
-      tiles.push({ cont, overlay });
-      letters.push(letter);
+      const lx = c * (GRID.size + GRID.gutter); // local X
+      const ly = r * (GRID.size + GRID.gutter); // local Y
+      const { cont, letter, overlay } = makeTile(lx, ly, GRID.size);
+      gridRoot.addChild(cont);
+      tiles.push({cont, overlay}); letters.push(letter);
     }
   }
 
-  // letters (placeholder distribution)
+  // position grid root at the anchor (top-left tile center)
+  gridRoot.position.set(GRID.topLeftCenter.x, GRID.topLeftCenter.y);
+  gridRoot.scale.set(GRID.scale ?? 1);
+
+  // letters (placeholder)
   const ALPH="EEEEEEEEEEEEAAAAAAAIIIIIIIONNNNRRRRTTTTTLLLLSSSSUUUUDDGGBBCCMMPPFFHHVVWWYYKJXQZ";
   function rollLetters(){
     for (let i=0;i<letters.length;i++){
       letters[i].text = ALPH[Math.floor(Math.random()*ALPH.length)];
-      letters[i].alpha = 1;
-      tiles[i].cont.alpha = 1;
-      if (tiles[i].overlay) tiles[i].overlay.tint = 0xFFFFFF;
+      letters[i].alpha=1; tiles[i].cont.alpha=1; if (tiles[i].overlay) tiles[i].overlay.tint=0xFFFFFF;
     }
   }
   rollLetters();
 
-  // selection MVP
+  // simple select toggle (MVP)
   const selected=[];
   tiles.forEach((t,i)=>{
     t.cont.on("pointerdown", ()=>{
       const k = selected.indexOf(i);
-      if (k >= 0){ selected.splice(k,1); t.cont.alpha=1; if (t.overlay) t.overlay.tint=0xFFFFFF; }
-      else       { selected.push(i);     t.cont.alpha=0.95; if (t.overlay) t.overlay.tint=0xE9FFD6; }
+      if (k>=0){ selected.splice(k,1); t.cont.alpha=1; if(t.overlay) t.overlay.tint=0xFFFFFF; }
+      else     { selected.push(i);     t.cont.alpha=0.95; if(t.overlay) t.overlay.tint=0xE9FFD6; }
     });
   });
   function clearSelection(){ selected.splice(0); tiles.forEach(t=>{ t.cont.alpha=1; if(t.overlay) t.overlay.tint=0xFFFFFF; }); }
 
-  // ------------------ COUNTER (coords.counter is TOP-LEFT) ------------------
+  // ---------- COUNTER ----------
   const counterPos = coords.counter
     ? { x: coords.counter.x + COUNTER_R, y: coords.counter.y + COUNTER_R }
-    : { x: 160, y: 40 };
+    : { x:160, y:40 };
 
   const counterBg = new PIXI.Graphics();
   counterBg.beginFill(0x24303a);
@@ -197,9 +198,9 @@ function makeTile(x, y, size){
   function setWordCount(n){ counterText.text = String(n); }
   function submitWord(){ if(!selected.length) return; wordsCount++; setWordCount(wordsCount); clearSelection(); }
 
-  // ------------------ BUTTONS ------------------
+  // ---------- BUTTONS ----------
   function btnPaths(base){
-    const s = suf();
+    const s=suf();
     return { up:`assets/buttons/${base}${s}.png`, down:`assets/buttons/${base}Press${s}.png` };
   }
   function findBtn(which){
@@ -213,8 +214,7 @@ function makeTile(x, y, size){
     const s = new PIXI.Sprite(texUp || texDown);
     s.anchor.set(0.5); s.position.set(center.x, center.y);
     if (s.width && s.height){
-      const sx = BTN_SIZE.w/s.width, sy = BTN_SIZE.h/s.height;
-      s.scale.set(sx, sy);
+      const sx = BTN_SIZE.w/s.width, sy = BTN_SIZE.h/s.height; s.scale.set(sx, sy);
     }
     s.eventMode="static"; s.cursor="pointer";
     s.hitArea = new PIXI.Rectangle(-BTN_SIZE.w/2, -BTN_SIZE.h/2, BTN_SIZE.w, BTN_SIZE.h);
@@ -224,23 +224,18 @@ function makeTile(x, y, size){
     s.on("pointercancel",    ()=>{ if (texUp) s.texture = texUp; });
     uiLayer.addChild(s);
   }
-  await makeButton("green", "leftButton",  submitWord);
-  await makeButton("red",   "rightButton", clearSelection);
+  await makeButton("green","leftButton", submitWord);
+  await makeButton("red","rightButton",   clearSelection);
 
-  // ------------------ TIMER (rotate) ------------------
-  const faceTL = coords.timer && coords.timer.face ? { x: coords.timer.face.x, y: coords.timer.face.y } : { x: 140, y: 392 };
+  // ---------- TIMER ----------
+  const faceTL = coords.timer && coords.timer.face ? { x:coords.timer.face.x, y:coords.timer.face.y } : { x:140, y:392 };
   const faceContainer = new PIXI.Container();
   faceContainer.position.set(faceTL.x + TIMER_R, faceTL.y + TIMER_R);
   uiLayer.addChild(faceContainer);
 
-  const faceTex = await firstTexture([
-    `assets/timer/face${suf()}.png`,
-    `assets/timer/face@1x.png`
-  ]);
+  const faceTex = await firstTexture([`assets/timer/face${suf()}.png`,`assets/timer/face@1x.png`]);
   if (faceTex){
-    const s = new PIXI.Sprite(faceTex);
-    s.anchor.set(0.5); s.width = s.height = TIMER_R * 2;
-    faceContainer.addChild(s);
+    const s = new PIXI.Sprite(faceTex); s.anchor.set(0.5); s.width = s.height = TIMER_R*2; faceContainer.addChild(s);
   } else {
     const g = new PIXI.Graphics();
     g.lineStyle(2, 0x000000, 0.5);
@@ -250,9 +245,9 @@ function makeTile(x, y, size){
     faceContainer.addChild(g);
   }
 
-  // ------------------ LIGHTS (coded glows) ------------------
-  const bulbs = [];
-  (coords.lights || []).forEach(L=>{
+  // ---------- LIGHTS ----------
+  const bulbs=[];
+  (coords.lights||[]).forEach(L=>{
     const dot = new PIXI.Graphics();
     dot.beginFill(0xfff080);
     dot.drawCircle(0,0,3.6);
@@ -262,29 +257,22 @@ function makeTile(x, y, size){
     spr.position.set(L.x, L.y);
     spr.alpha = 0.7;
     const blur = new PIXI.filters.BlurFilter(); blur.blur = 1.4; spr.filters = [blur];
-    fxLayer.addChild(spr);
-    bulbs.push(spr);
+    fxLayer.addChild(spr); bulbs.push(spr);
   });
 
-  // ------------------ ROUND TIMER LOOP ------------------
-  const ROUND_S = 180, WARN_S = 10;
-  let elapsed = 0, running = true, warned = false;
-
+  // ---------- ROUND TIMER LOOP ----------
+  const ROUND_S=180, WARN_S=10;
+  let elapsed=0, running=true, warned=false;
   app.ticker.add((delta)=>{
     layout();
-    if (!running) return;
-    const dt = delta / 60; elapsed += dt;
-    faceContainer.rotation = (elapsed * (Math.PI*2 / ROUND_S)) % (Math.PI*2);
-    const remaining = ROUND_S - elapsed;
-    if (!warned && remaining <= WARN_S && remaining > 0){
-      warned = true; bulbs.forEach(b=> b.alpha = 1.0);
-    }
-    if (elapsed >= ROUND_S){
-      running = false; faceContainer.rotation = 0;
-      let n=0; const iv=setInterval(()=>{
-        bulbs.forEach(b=> b.tint = (n%2 ? 0xfff080 : 0xd92626));
-        if(++n>=4) clearInterval(iv);
-      },160);
+    if(!running) return;
+    const dt=delta/60; elapsed+=dt;
+    faceContainer.rotation=(elapsed*(Math.PI*2/ROUND_S))%(Math.PI*2);
+    const rem=ROUND_S-elapsed;
+    if(!warned && rem<=WARN_S && rem>0){ warned=true; bulbs.forEach(b=> b.alpha=1.0); }
+    if(elapsed>=ROUND_S){
+      running=false; faceContainer.rotation=0;
+      let n=0; const iv=setInterval(()=>{ bulbs.forEach(b=> b.tint=(n%2?0xfff080:0xd92626)); if(++n>=4) clearInterval(iv); },160);
       // TODO: results/splash
     }
   });
