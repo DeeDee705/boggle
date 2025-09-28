@@ -4,9 +4,9 @@ const COORDS_URL = "assets/ui_coords_full_with_timer_counter.json"; // put JSON 
 
 const GRID = {
   rows: 5, cols: 5,
-  size: 38, gutter: 5,
-  // top-left tile CENTER (from your notes)
-  topLeftCenter: { x: 72.366, y: 254.0 }
+  size: 38, gutter: 7,
+  // raise grid higher (was 254.0)
+  topLeftCenter: { x: 72.366, y: 200.0 }
 };
 
 const TIMER_R   = 26;
@@ -101,40 +101,43 @@ let coords = { lights: [], buttons: [], timer: {}, counter: null };
     `assets/tiles/tile_base@1x.png`
   ]);
 
-  function makeTile(x, y, size){
-    const cont = new PIXI.Container(); cont.position.set(x,y); cont.eventMode = "static";
+function makeTile(x, y, size){
+  const cont = new PIXI.Container();
+  cont.position.set(x,y);
+  cont.eventMode = "static";
 
-    // 1) coded white base
-    const baseG = new PIXI.Graphics();
-    baseG.lineStyle(1, 0xcad3df, 0.9);
-    baseG.beginFill(0xf8fbff);
-    baseG.drawRoundedRect(-size/2, -size/2, size, size, 5);
-    baseG.endFill();
-    cont.addChild(baseG);
+  // base white
+  const baseG = new PIXI.Graphics();
+  baseG.lineStyle(1, 0xcad3df, 0.9);
+  baseG.beginFill(0xf8fbff);
+  baseG.drawRoundedRect(-size/2, -size/2, size, size, 5);
+  baseG.endFill();
+  cont.addChild(baseG);
 
-    // 2) letter
-    const letter = new PIXI.Text("", new PIXI.TextStyle({
-      fontFamily:"system-ui, -apple-system, Segoe UI, Roboto",
-      fontWeight:"800",
-      fontSize: Math.round(size*0.72),
-      fill: 0x23303a,
-      stroke: 0xffffff,
-      strokeThickness: 2
-    }));
-    letter.anchor.set(0.5); cont.addChild(letter);
+  // letter
+  const letter = new PIXI.Text("", new PIXI.TextStyle({
+    fontFamily:"system-ui, -apple-system, Segoe UI, Roboto",
+    fontWeight:"800",
+    fontSize: Math.round(size*0.72),
+    fill: 0x23303a,
+    stroke: 0xffffff,
+    strokeThickness: 2
+  }));
+  letter.anchor.set(0.5);
+  letter.position.y -= 2; // nudge up
+  cont.addChild(letter);
 
-    // 3) overlay (your filigree)
-    let overlay = null;
-    if (overlayTex){
-      overlay = new PIXI.Sprite(overlayTex);
-      overlay.anchor.set(0.5);
-      overlay.width = overlay.height = size;
-      cont.addChild(overlay);
-    }
-
-    return { cont, letter, overlay };
+  // overlay
+  let overlay = null;
+  if (overlayTex){
+    overlay = new PIXI.Sprite(overlayTex);
+    overlay.anchor.set(0.5);
+    overlay.width = overlay.height = size * 0.95; // tighter fit
+    cont.addChild(overlay);
   }
 
+  return { cont, letter, overlay };
+}
   const tiles = [], letters = [];
   for (let r=0;r<GRID.rows;r++){
     for (let c=0;c<GRID.cols;c++){
